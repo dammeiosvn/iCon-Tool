@@ -1,0 +1,27 @@
+{
+  "name": "Tạo Icon",
+  "short_name": "Tạo Icon",
+  "description": "Tạo icon phím tắt và webclip cho iOS",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "lang": "vi",
+  "dir": "ltr",
+  "background_color": "#101214",
+  "theme_color": "#101214",
+  "icons": [
+    {
+      "src": "icon-home-screen.png",
+      "sizes": "1024x1024",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "icon-home-screen.png",
+      "sizes": "180x180",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}
