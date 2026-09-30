@@ -1,4 +1,4 @@
-const CACHE = "tao-icon-v6";
+const CACHE = "tao-icon-v7";
 const ASSETS = [
   "./",
   "./index.html",
