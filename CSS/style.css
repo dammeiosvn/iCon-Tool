@@ -54,13 +54,12 @@ body {
   justify-content: space-between;
   align-items: center;
   gap: 8px;
-  padding: 2px 2px 8px;
+  padding: 0 2px 10px;
   flex: 0 0 auto;
 }
-.top h1 { margin: 0; font-size: 22px; font-weight: 700; letter-spacing: -.03em; }
-.top p { margin: 2px 0 0; color: var(--muted); font-size: 12px; letter-spacing: .01em; }
+.top h1 { margin: 0; font-size: 18px; font-weight: 700; letter-spacing: -.03em; }
 
-.tools { display: flex; gap: 8px; }
+.tools { display: flex; gap: 8px; flex: 0 0 auto; }
 .tools button {
   width: 36px; height: 36px;
   border: 1px solid var(--line);
@@ -71,17 +70,17 @@ body {
 }
 
 .workspace {
-  flex: 1;
+  flex: 0 0 auto;
   display: flex;
-  align-items: center;
-  justify-content: center;
+  align-items: flex-start;
+  justify-content: flex-start;
   gap: 8px;
   min-height: 0;
 }
 
 .stage {
   flex: 1;
-  max-width: 280px;
+  max-width: none;
   min-width: 0;
   display: flex;
   flex-direction: column;
@@ -154,13 +153,13 @@ body {
 .rail {
   position: relative;
   width: var(--rail);
-  align-self: center;
+  align-self: flex-start;
   display: flex;
   flex-direction: column;
   justify-content: flex-start;
   gap: 6px;
   z-index: 20;
-  padding: 2px 0;
+  padding: 0;
 }
 .rail button {
   flex: 0 0 auto;
