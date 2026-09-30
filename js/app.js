@@ -767,7 +767,10 @@
     $("autoInk").onclick = () => { $("ink").value = lum(val("c1")) > .45 ? "#111111" : "#ffffff"; draw(); pushHist(); };
     $("symQ").addEventListener("input", renderSymbols);
     $("undo").onclick = undo; $("redo").onclick = redo;
-    $("reset").onclick = () => { location.reload(); };
+    $("reset").onclick = () => {
+      try { localStorage.removeItem(KEY); } catch {}
+      location.reload();
+    };
     $("share1024").onclick = () => exportPng(SIZE, true);
     $("share180").onclick = () => exportPng(180, true);
     $("shareZip").onclick = exportZip;
