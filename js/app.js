@@ -84,7 +84,31 @@
     }
   }
 
+  function applyContentShadow(g) {
+    if (!$("shadowContent").checked || num("salpha") <= 0) {
+      g.shadowColor = "transparent";
+      g.shadowBlur = 0;
+      g.shadowOffsetX = 0;
+      g.shadowOffsetY = 0;
+      return;
+    }
+    const a = num("salpha") / 100;
+    const preset = val("shadowPreset");
+    g.shadowColor = preset === "neon" ? hexAlpha(val("ink"), a) : hexAlpha(val("scolor"), a);
+    g.shadowBlur = num("sblur") * 2;
+    g.shadowOffsetX = num("sx") * 2;
+    g.shadowOffsetY = num("sy") * 2;
+  }
+
+  function clearShadow(g) {
+    g.shadowColor = "transparent";
+    g.shadowBlur = 0;
+    g.shadowOffsetX = 0;
+    g.shadowOffsetY = 0;
+  }
+
   function applyOuterShadow(g, box, preset) {
+    if (!$("shadowFrame").checked) return;
     const a = num("salpha") / 100;
     if (a <= 0 || preset === "none") return;
     const col = hexAlpha(val("scolor"), a);
@@ -118,6 +142,7 @@
   }
 
   function applyInset(g, box, preset) {
+    if (!$("shadowFrame").checked) return;
     if (!["inset", "pressed", "neuIn", "clay"].includes(preset)) return;
     const a = num("salpha") / 100;
     g.save();
@@ -152,7 +177,9 @@
     else { dw = box.w * zoom; dh = dw / ir; }
     const ox = box.x - (dw - box.w) * (state.px / 100);
     const oy = box.y - (dh - box.h) * (state.py / 100);
+    applyContentShadow(g);
     g.drawImage(img, ox, oy, dw, dh);
+    clearShadow(g);
   }
 
   function drawSvg(g, box) {
@@ -169,7 +196,9 @@
     o.globalCompositeOperation = "source-in";
     o.fillStyle = val("ink");
     o.fillRect(0, 0, off.width, off.height);
+    applyContentShadow(g);
     g.drawImage(off, x, y, s, s);
+    clearShadow(g);
   }
 
   function starPath(g, cx, cy, r, n = 5) {
@@ -205,12 +234,14 @@
     g.lineWidth = Math.max(10, s * 0.08);
     g.lineCap = "round";
     g.lineJoin = "round";
+    applyContentShadow(g);
 
     if (m === "text") {
       g.font = `700 ${s}px ${val("font")}`;
       g.textAlign = "center";
       g.textBaseline = "middle";
       g.fillText((val("letters") || "S").slice(0, 2), cx, cy + s * 0.04);
+      clearShadow(g);
       return;
     }
     if (m === "sun") {
@@ -218,12 +249,14 @@
       g.arc(cx, cy - s * 0.08, s * 0.28, 0, Math.PI * 2);
       g.fill();
       g.fillRect(cx - s * 0.55, cy + s * 0.32, s * 1.1, Math.max(8, s * 0.05));
+      clearShadow(g);
       return;
     }
     if (m === "plus") {
       const t = Math.max(16, s * 0.18);
       g.fillRect(cx - t / 2, cy - s / 2, t, s);
       g.fillRect(cx - s / 2, cy - t / 2, s, t);
+      clearShadow(g);
       return;
     }
     if (m === "gear") {
@@ -237,6 +270,7 @@
         g.lineTo(cx + Math.cos(t) * s * 0.42, cy + Math.sin(t) * s * 0.42);
         g.stroke();
       }
+      clearShadow(g);
       return;
     }
     if (m === "mail") {
@@ -247,6 +281,7 @@
       g.lineTo(cx, cy + h * 0.08);
       g.lineTo(cx + w / 2, cy - h / 2);
       g.stroke();
+      clearShadow(g);
       return;
     }
     if (m === "phone") {
@@ -256,17 +291,20 @@
       g.beginPath();
       g.arc(cx, cy + h * 0.32, s * 0.045, 0, Math.PI * 2);
       g.fill();
+      clearShadow(g);
       return;
     }
     if (m === "star") {
       starPath(g, cx, cy, s * 0.48);
       g.fill();
+      clearShadow(g);
       return;
     }
     if (m === "heart") {
       heartPath(g, cx, cy, s * 0.55);
       g.fill();
     }
+    clearShadow(g);
   }
 
   function draw() {
@@ -296,11 +334,7 @@
       ctx.fillRect(box.x, box.y, box.w, box.h);
     }
 
-    ctx.save();
-    roundPath(ctx, inner.x, inner.y, inner.w, inner.h, inner.r);
-    ctx.clip();
     drawMark(ctx, inner);
-    ctx.restore();
 
     applyInset(ctx, box, preset);
 
