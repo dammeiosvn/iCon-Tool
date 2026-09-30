@@ -55,9 +55,9 @@
     return 0.2126*f(r)+0.7152*f(g)+0.0722*f(b);
   }
 
-  function roundPath(g, x, y, w, h, r) {
+  function roundPath(g, x, y, w, h, r, start = true) {
     r = Math.max(0, Math.min(r, w/2, h/2));
-    g.beginPath();
+    if (start) g.beginPath();
     if (r <= 0) { g.rect(x, y, w, h); return; }
     g.moveTo(x+r, y);
     g.arcTo(x+w, y, x+w, y+h, r);
@@ -67,9 +67,10 @@
     g.closePath();
   }
 
-  function squirclePath(g, x, y, w, h) {
+  function squirclePath(g, x, y, w, h, start = true) {
     const n = 5, steps = 80, cx = x+w/2, cy = y+h/2;
-    g.beginPath();
+    if (start) g.beginPath();
+    else g.moveTo(cx + w/2, cy);
     for (let i = 0; i <= steps; i++) {
       const t = (i/steps)*Math.PI*2;
       const ca = Math.cos(t), sa = Math.sin(t);
@@ -91,9 +92,17 @@
     return { x:m, y:m, w:SIZE-m*2, h:SIZE-m*2, r: num("radius")*((SIZE-m*2)/SIZE) };
   }
 
+  function addIconPath(g, box, start = true) {
+    if (on("squircle") && num("radius") === 0) squirclePath(g, box.x, box.y, box.w, box.h, start);
+    else roundPath(g, box.x, box.y, box.w, box.h, box.r, start);
+  }
+
   function clipIcon(g, box) {
-    if (on("squircle") && num("radius") === 0) squirclePath(g, box.x, box.y, box.w, box.h);
-    else roundPath(g, box.x, box.y, box.w, box.h, box.r);
+    addIconPath(g, box, true);
+  }
+
+  function frameShape(box, inner) {
+    return val("bg") === "clear" ? inner : box;
   }
 
   function fillBackground(g, box) {
@@ -113,17 +122,27 @@
     paintGrain(g, box, num("noise"));
   }
 
+  const grainTile = { key: "", c: null };
   function paintGrain(g, box, n) {
     if (n <= 0) return;
-    const count = Math.round(n * 320);
-    const boost = n / 40;
-    for (let i = 0; i < count; i++) {
-      const dark = seeded(i + 17) > 0.5;
-      const a = (0.08 + seeded(i) * 0.28) * boost;
-      g.fillStyle = dark ? `rgba(0,0,0,${a})` : `rgba(255,255,255,${a})`;
-      const s = seeded(i + 4) > 0.75 ? 3 : 2;
-      g.fillRect(box.x + seeded(i + 3) * box.w, box.y + seeded(i + 9) * box.h, s, s);
+    const key = n + ":" + Math.round(box.w) + ":" + Math.round(box.h);
+    if (grainTile.key !== key) {
+      const cnv = document.createElement("canvas");
+      cnv.width = Math.max(8, Math.round(box.w));
+      cnv.height = Math.max(8, Math.round(box.h));
+      const o = cnv.getContext("2d");
+      const count = Math.round(n * 160);
+      const boost = n / 40;
+      for (let i = 0; i < count; i++) {
+        const dark = seeded(i + 17) > 0.5;
+        const a = (0.1 + seeded(i) * 0.3) * boost;
+        o.fillStyle = dark ? `rgba(0,0,0,${a})` : `rgba(255,255,255,${a})`;
+        const s = seeded(i + 4) > 0.75 ? 3 : 2;
+        o.fillRect(seeded(i + 3) * cnv.width, seeded(i + 9) * cnv.height, s, s);
+      }
+      grainTile.key = key; grainTile.c = cnv;
     }
+    g.drawImage(grainTile.c, box.x, box.y, box.w, box.h);
   }
 
   function activeLayer() { return state.layers[state.active] || null; }
@@ -189,24 +208,25 @@
   function applyInsetLayer(g, box, L) {
     const a = L.alpha/100;
     if (a <= 0) return;
-    g.save();
-    clipIcon(g, box); g.clip();
-    clearShadow(g);
-    g.strokeStyle = "rgba(0,0,0,0)";
-    g.lineWidth = Math.max(28, L.blur * 2.2);
-    g.shadowColor = layerColor(L, a);
-    g.shadowBlur = Math.max(6, L.blur);
-    g.shadowOffsetX = L.sx * 1.6;
-    g.shadowOffsetY = L.sy * 1.6;
-    clipIcon(g, box);
-    g.stroke();
+    const ring = (color, ox, oy) => {
+      g.save();
+      addIconPath(g, box, true);
+      g.clip();
+      g.shadowColor = color;
+      g.shadowBlur = Math.max(10, L.blur * 1.6);
+      g.shadowOffsetX = ox;
+      g.shadowOffsetY = oy;
+      g.fillStyle = "#000";
+      g.beginPath();
+      g.rect(-SIZE, -SIZE, SIZE * 3, SIZE * 3);
+      addIconPath(g, box, false);
+      g.fill("evenodd");
+      g.restore();
+    };
+    ring(layerColor(L, a), L.sx * 2, L.sy * 2);
     if (L.type === "neuIn" || L.type === "clay") {
-      g.shadowColor = hexAlpha("#ffffff", a * 0.5);
-      g.shadowOffsetX = -L.sx * 1.6;
-      g.shadowOffsetY = -L.sy * 1.6;
-      g.stroke();
+      ring(hexAlpha("#ffffff", a * 0.5), -L.sx * 2, -L.sy * 2);
     }
-    g.restore();
   }
 
   function applyContentShadow(g) {
@@ -322,22 +342,34 @@
     });
   }
 
-  function draw() {
+  let live = false, raf = 0;
+  function requestDraw(save) {
+    if (raf) { if (save) state._save = true; return; }
+    raf = requestAnimationFrame(() => {
+      raf = 0;
+      draw({ draft: live });
+      if (save || state._save) { state._save = false; if (!live) pushHist(); }
+    });
+  }
+
+  function draw(opt) {
+    const draft = opt && opt.draft;
     ctx.clearRect(0,0,SIZE,SIZE);
     const box = iconBox();
     const pad = num("pad");
     const inner = { x:box.x+pad, y:box.y+pad, w:Math.max(8,box.w-pad*2), h:Math.max(8,box.h-pad*2), r:Math.max(0,box.r-pad*.35) };
+    const fb = frameShape(box, inner);
     const outers = state.layers.filter((L) => L.on && L.target === "frame" && !INSET.has(L.type) && L.alpha > 0);
-    outers.forEach((L) => applyFrameLayer(ctx, box, L));
-    if (outers.length) punchShape(ctx, box);
+    outers.forEach((L) => applyFrameLayer(ctx, fb, L));
+    if (outers.length) punchShape(ctx, fb);
     ctx.save();
     clipIcon(ctx, box); ctx.clip();
     fillBackground(ctx, box);
     if (num("glass")>0) { ctx.fillStyle = `rgba(255,255,255,${num("glass")/100})`; ctx.fillRect(box.x,box.y,box.w,box.h); }
     drawMark(ctx, inner);
-    if (num("noise") > 0) paintGrain(ctx, box, Math.round(num("noise") * 0.55));
+    if (!draft && num("noise") > 0) paintGrain(ctx, box, Math.round(num("noise") * 0.45));
     state.layers.forEach((L) => {
-      if (L.on && L.target === "frame" && INSET.has(L.type)) applyInsetLayer(ctx, box, L);
+      if (L.on && L.target === "frame" && INSET.has(L.type)) applyInsetLayer(ctx, fb, L);
     });
     if (num("stroke")>0) {
       ctx.strokeStyle = "rgba(255,255,255,.78)";
@@ -583,14 +615,17 @@
   const TITLES = { bg:"Nền", radius:"Bo góc", glass:"Kính & viền", shadow:"Đổ bóng", mark:"Ký hiệu & chữ", media:"Ảnh & SVG", home:"Màn hình chính", export:"Xuất file" };
 
   function openPane(id) {
-    sheet.hidden = false;
     $("sheetTitle").textContent = TITLES[id] || id;
     document.querySelectorAll(".pane").forEach((p) => p.classList.toggle("on", p.dataset.pane === id));
     document.querySelectorAll(".rail button").forEach((b) => b.classList.toggle("on", b.dataset.panel === id));
+    sheet.hidden = false;
+    sheet.classList.remove("ghost");
+    requestAnimationFrame(() => sheet.classList.add("open"));
   }
   function closeSheet() {
-    sheet.hidden = true;
+    sheet.classList.remove("open", "ghost");
     document.querySelectorAll(".rail button").forEach((b) => b.classList.remove("on"));
+    setTimeout(() => { if (!sheet.classList.contains("open")) sheet.hidden = true; }, 340);
   }
 
   function bind() {
@@ -602,12 +637,13 @@
           return;
         }
         if (["sx","sy","sblur","salpha","scolor","layerTarget"].includes(el.id)) saveSlidersToLayer();
-        draw(); pushHist();
+        requestDraw(false);
       });
+      el.addEventListener("change", () => { if (el.type !== "file") pushHist(); });
     });
     document.querySelectorAll("input[type=range], input[type=color]").forEach((el) => {
-      const dim = () => sheet.classList.add("ghost");
-      const undim = () => sheet.classList.remove("ghost");
+      const dim = () => { live = true; sheet.classList.add("ghost"); };
+      const undim = () => { live = false; sheet.classList.remove("ghost"); requestDraw(true); };
       el.addEventListener("pointerdown", dim);
       el.addEventListener("touchstart", dim, { passive:true });
       el.addEventListener("pointerup", undim);
@@ -617,7 +653,7 @@
 
     document.querySelectorAll(".rail button").forEach((b) => {
       b.onclick = () => {
-        if (b.classList.contains("on") && !sheet.hidden) closeSheet();
+        if (b.classList.contains("on") && sheet.classList.contains("open")) closeSheet();
         else openPane(b.dataset.panel);
       };
     });
@@ -646,9 +682,9 @@
       const k = 80 / Math.max(c.getBoundingClientRect().width, 1);
       $("px").value = Math.max(0, Math.min(100, state.drag.px - (e.clientX-state.drag.x)*k));
       $("py").value = Math.max(0, Math.min(100, state.drag.py - (e.clientY-state.drag.y)*k));
-      draw();
+      live = true; requestDraw(false);
     });
-    c.addEventListener("pointerup", () => { if (state.drag) pushHist(); state.drag = null; });
+    c.addEventListener("pointerup", () => { live = false; if (state.drag) pushHist(); state.drag = null; });
     c.addEventListener("touchstart", (e) => {
       if (e.touches.length===2) {
         const [a,b]=e.touches;
@@ -662,7 +698,7 @@
         const [a,b]=e.touches;
         const d = Math.hypot(a.clientX-b.clientX,a.clientY-b.clientY);
         $("zoom").value = Math.round(Math.max(40, Math.min(240, state.pinch.zoom*(d/state.pinch.dist))));
-        draw();
+        live = true; requestDraw(false);
       }
     }, { passive:false });
 
