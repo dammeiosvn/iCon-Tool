@@ -9,7 +9,7 @@
   --go: #3dcc6e;
   --thumb: #1c8f86;
   --check: #c8cdd2;
-  --rail: 58px;
+  --rail: 46px;
   --safe-t: env(safe-area-inset-top);
   --safe-b: env(safe-area-inset-bottom);
   --safe-r: env(safe-area-inset-right);
@@ -56,12 +56,14 @@ body {
 
 .tools { display: flex; gap: 6px; }
 .tools button {
-  width: 36px; height: 36px;
-  border: 1px solid var(--line);
+  width: 32px; height: 32px;
+  border: 1px solid color-mix(in srgb, #fff 50%, var(--line));
   border-radius: 10px;
-  background: var(--card);
+  background: color-mix(in srgb, var(--card) 55%, transparent);
+  -webkit-backdrop-filter: blur(16px) saturate(160%);
+  backdrop-filter: blur(16px) saturate(160%);
   color: var(--fg);
-  font-size: 16px;
+  font-size: 14px;
 }
 
 .stage { min-height: 56vh; display: flex; flex-direction: column; align-items: center; justify-content: center; }
@@ -130,21 +132,29 @@ body {
   width: var(--rail);
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  justify-content: center;
+  gap: 5px;
   z-index: 40;
 }
 .rail button {
-  flex: 1;
-  border: 0;
-  border-radius: 14px;
-  background: var(--card);
+  flex: 0 0 auto;
+  height: 40px;
+  border: 1px solid color-mix(in srgb, #fff 48%, var(--line));
+  border-radius: 12px;
+  background: color-mix(in srgb, var(--card) 50%, transparent);
+  -webkit-backdrop-filter: blur(18px) saturate(170%);
+  backdrop-filter: blur(18px) saturate(170%);
   color: var(--fg);
-  font-size: 11px;
+  font-size: 10px;
   font-weight: 700;
-  padding: 4px 3px;
-  box-shadow: 0 6px 16px rgba(0,0,0,.08);
+  padding: 0 2px;
+  box-shadow: 0 4px 12px rgba(0,0,0,.08);
 }
-.rail button.on { background: var(--accent); color: #fff; }
+.rail button.on {
+  background: color-mix(in srgb, var(--accent) 78%, transparent);
+  color: #fff;
+  border-color: color-mix(in srgb, #fff 30%, var(--accent));
+}
 
 .sheet {
   position: fixed;
@@ -236,3 +246,33 @@ button.go { background: var(--go); color: #fff; font-weight: 750; }
 button.go.alt { background: var(--fill); color: var(--fg); }
 button.go.ghost { background: transparent; color: var(--muted); border: 1px dashed var(--line); }
 .note { margin: 0; font-size: 12px; color: var(--muted); }
+
+.chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.chips button {
+  border: 0;
+  border-radius: 999px;
+  padding: 6px 10px;
+  font-size: 11px;
+  font-weight: 700;
+  background: var(--fill);
+  color: var(--fg);
+}
+.layers { display: grid; gap: 6px; }
+.layer {
+  display: grid;
+  grid-template-columns: 22px 1fr auto;
+  gap: 8px;
+  align-items: center;
+  padding: 8px 10px;
+  border-radius: 12px;
+  background: var(--fill);
+  font-size: 12px;
+}
+.layer.on-edit { outline: 2px solid var(--accent); }
+.layer button {
+  border: 0;
+  background: transparent;
+  color: var(--muted);
+  font-size: 14px;
+  padding: 0 4px;
+}
