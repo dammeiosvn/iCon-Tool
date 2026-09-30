@@ -76,9 +76,11 @@ body {
   flex-direction: column;
   align-items: center;
   gap: 10px;
-  background: linear-gradient(180deg, #5b7cff, #c5b4ff 55%, #f7c6e0);
-  box-shadow: 0 18px 40px rgba(0,0,0,.18);
+  background: var(--bg);
+  box-shadow: none;
 }
+.mock.wall-system { background: var(--bg); }
+.mock.wall-ios { background: linear-gradient(180deg, #5b7cff, #c5b4ff 55%, #f7c6e0); box-shadow: 0 18px 40px rgba(0,0,0,.18); }
 .mock.wall-dark { background: linear-gradient(180deg, #1c1c1e, #3a3a3c); }
 .mock.wall-light { background: linear-gradient(180deg, #dbeafe, #f8fafc); }
 .mock.wall-sunset { background: linear-gradient(180deg, #ff7a59, #ffd29d); }
@@ -112,15 +114,18 @@ body {
 }
 
 .mock-name {
-  color: #fff;
+  color: var(--muted);
   font-size: 12px;
-  text-shadow: 0 1px 2px rgba(0,0,0,.35);
+  text-shadow: none;
   text-align: center;
   max-width: 92px;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
+.mock.wall-ios .mock-name,
+.mock.wall-sunset .mock-name,
+.mock.wall-dark .mock-name { color: #fff; text-shadow: 0 1px 2px rgba(0,0,0,.35); }
 .mock.off .mock-name { display: none; }
 .warn { margin: 8px 0 0; font-size: 12px; color: #c2410c; }
 
@@ -294,4 +299,17 @@ button.go.ghost { background: transparent; color: var(--muted); border: 1px dash
   color: var(--muted);
   font-size: 14px;
   padding: 0 4px;
+}
+
+.symgrid {
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  gap: 6px;
+}
+.sym {
+  height: 40px;
+  border: 0;
+  border-radius: 10px;
+  background: var(--fill);
+  font-size: 18px;
 }
