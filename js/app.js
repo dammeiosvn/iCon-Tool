@@ -185,23 +185,69 @@
   function activeLayer() { return state.layers[state.active] || null; }
 
   function layerColor(L, a) {
-    return L.type === "neon" ? hexAlpha(val("ink"), a) : hexAlpha(L.color, a);
+    const hex = (L.color && /^#[0-9a-fA-F]{6}$/.test(L.color)) ? L.color : "#000000";
+    return hexAlpha(hex, a);
   }
 
   function applyContentShadows(g, drawFn) {
     const list = state.layers.filter((L) => L.on && L.target === "content" && L.alpha > 0);
-    list.forEach((L) => {
+    const outers = list.filter((L) => !INSET.has(L.type));
+    const insets = list.filter((L) => INSET.has(L.type));
+    outers.forEach((L) => {
       g.save();
-      g.shadowColor = layerColor(L, L.alpha/100);
-      g.shadowBlur = L.blur * 2;
+      const a = L.alpha / 100;
+      const glow = L.type === "glow" || L.type === "neon";
+      g.shadowColor = layerColor(L, a);
+      g.shadowBlur = glow ? Math.max(14, L.blur * 2.8) : L.blur * 2;
       g.shadowOffsetX = L.sx * 2;
       g.shadowOffsetY = L.sy * 2;
-      drawFn();
+      drawFn(g);
+      if (DUAL.has(L.type)) {
+        g.shadowColor = hexAlpha("#ffffff", Math.min(0.65, a + 0.15));
+        g.shadowOffsetX = -L.sx * 2;
+        g.shadowOffsetY = -L.sy * 2;
+        drawFn(g);
+      }
       g.restore();
     });
     clearShadow(g);
-    drawFn();
+    drawFn(g);
+    if (insets.length) paintContentInsets(g, insets, drawFn);
     clearShadow(g);
+  }
+
+  function paintContentInsets(g, insets, drawFn) {
+    const src = document.createElement("canvas");
+    src.width = src.height = SIZE;
+    drawFn(src.getContext("2d"));
+    const inv = document.createElement("canvas");
+    inv.width = inv.height = SIZE;
+    const iv = inv.getContext("2d");
+    iv.fillStyle = "#000";
+    iv.fillRect(0, 0, SIZE, SIZE);
+    iv.globalCompositeOperation = "destination-out";
+    iv.drawImage(src, 0, 0);
+    insets.forEach((L) => {
+      const a = L.alpha / 100;
+      const pass = (color, ox, oy) => {
+        const sh = document.createElement("canvas");
+        sh.width = sh.height = SIZE;
+        const h = sh.getContext("2d");
+        h.shadowColor = color;
+        h.shadowBlur = Math.max(8, L.blur * 1.8);
+        h.shadowOffsetX = ox;
+        h.shadowOffsetY = oy;
+        h.drawImage(inv, 0, 0);
+        h.globalCompositeOperation = "destination-in";
+        clearShadow(h);
+        h.drawImage(src, 0, 0);
+        g.drawImage(sh, 0, 0);
+      };
+      pass(layerColor(L, a), L.sx * 2, L.sy * 2);
+      if (L.type === "neuIn" || L.type === "clay") {
+        pass(hexAlpha("#ffffff", a * 0.55), -L.sx * 2, -L.sy * 2);
+      }
+    });
   }
 
   function applyFrameLayer(g, box, L) {
@@ -266,20 +312,9 @@
     }
   }
 
-  function applyContentShadow(g) {
-    const L = state.layers.find((x) => x.on && x.target === "content" && x.alpha > 0);
-    if (!L) { clearShadow(g); return; }
-    g.shadowColor = layerColor(L, L.alpha/100);
-    g.shadowBlur = L.blur*2;
-    g.shadowOffsetX = L.sx*2;
-    g.shadowOffsetY = L.sy*2;
-  }
   function clearShadow(g) {
     g.shadowColor = "transparent"; g.shadowBlur = 0; g.shadowOffsetX = 0; g.shadowOffsetY = 0;
   }
-
-  function applyOuterShadow() {}
-  function applyInset() {}
 
   function withContentXform(g, box, fn) {
     const cx = box.x + box.w/2, cy = box.y + box.h/2;
@@ -314,7 +349,7 @@
     let dw, dh;
     if (ir > br) { dh = box.h*zoom; dw = dh*ir; }
     else { dw = box.w*zoom; dh = dw/ir; }
-    applyContentShadows(g, () => g.drawImage(img, box.x+box.w/2-dw/2, box.y+box.h/2-dh/2, dw, dh));
+    applyContentShadows(g, (ctx) => ctx.drawImage(img, box.x+box.w/2-dw/2, box.y+box.h/2-dh/2, dw, dh));
   }
 
   function drawSvg(g, box) {
@@ -330,7 +365,7 @@
       o.fillStyle = inkPaint(o, { x:0, y:0, w:off.width, h:off.height });
       o.fillRect(0,0,off.width,off.height);
     }
-    applyContentShadows(g, () => g.drawImage(off, x, y, s, s));
+    applyContentShadows(g, (ctx) => ctx.drawImage(off, x, y, s, s));
   }
 
   function starPath(g, cx, cy, r) {
@@ -349,43 +384,43 @@
       if (m === "photo") { drawPhoto(g, box); return; }
       if (m === "svg") { drawSvg(g, box); return; }
       const cx = box.x+box.w/2, cy = box.y+box.h/2, s = num("size");
-      const paint = inkPaint(g, box);
-      g.fillStyle = g.strokeStyle = paint;
-      g.lineWidth = Math.max(10, s*.08);
-      g.lineCap = g.lineJoin = "round";
-      applyContentShadows(g, () => {
+      applyContentShadows(g, (ctx) => {
+      const paint = inkPaint(ctx, box);
+      ctx.fillStyle = ctx.strokeStyle = paint;
+      ctx.lineWidth = Math.max(10, s*.08);
+      ctx.lineCap = ctx.lineJoin = "round";
       if (m === "text") {
-        g.font = `700 ${s}px ${val("font")}`;
-        g.textAlign = "center"; g.textBaseline = "middle";
-        g.fillText((val("letters") || "S").slice(0,24), cx, cy+s*.04);
+        ctx.font = `700 ${s}px ${val("font")}`;
+        ctx.textAlign = "center"; ctx.textBaseline = "middle";
+        ctx.fillText((val("letters") || "S").slice(0,24), cx, cy+s*.04);
       } else if (m === "sun") {
-        g.beginPath(); g.arc(cx, cy-s*.08, s*.28, 0, 7); g.fill();
-        g.fillRect(cx-s*.55, cy+s*.32, s*1.1, Math.max(8,s*.05));
+        ctx.beginPath(); ctx.arc(cx, cy-s*.08, s*.28, 0, 7); ctx.fill();
+        ctx.fillRect(cx-s*.55, cy+s*.32, s*1.1, Math.max(8,s*.05));
       } else if (m === "plus") {
         const t = Math.max(16,s*.18);
-        g.fillRect(cx-t/2, cy-s/2, t, s); g.fillRect(cx-s/2, cy-t/2, s, t);
+        ctx.fillRect(cx-t/2, cy-s/2, t, s); ctx.fillRect(cx-s/2, cy-t/2, s, t);
       } else if (m === "gear") {
-        g.beginPath(); g.arc(cx, cy, s*.22, 0, 7); g.stroke();
+        ctx.beginPath(); ctx.arc(cx, cy, s*.22, 0, 7); ctx.stroke();
         for (let i=0;i<8;i++) {
           const t=i/8*Math.PI*2;
-          g.beginPath();
-          g.moveTo(cx+Math.cos(t)*s*.3, cy+Math.sin(t)*s*.3);
-          g.lineTo(cx+Math.cos(t)*s*.42, cy+Math.sin(t)*s*.42); g.stroke();
+          ctx.beginPath();
+          ctx.moveTo(cx+Math.cos(t)*s*.3, cy+Math.sin(t)*s*.3);
+          ctx.lineTo(cx+Math.cos(t)*s*.42, cy+Math.sin(t)*s*.42); ctx.stroke();
         }
       } else if (m === "mail") {
         const w=s*1.05,h=s*.72;
-        g.strokeRect(cx-w/2, cy-h/2, w, h);
-        g.beginPath(); g.moveTo(cx-w/2, cy-h/2); g.lineTo(cx, cy+h*.08); g.lineTo(cx+w/2, cy-h/2); g.stroke();
+        ctx.strokeRect(cx-w/2, cy-h/2, w, h);
+        ctx.beginPath(); ctx.moveTo(cx-w/2, cy-h/2); ctx.lineTo(cx, cy+h*.08); ctx.lineTo(cx+w/2, cy-h/2); ctx.stroke();
       } else if (m === "phone") {
-        roundPath(g, cx-s*.24, cy-s*.41, s*.48, s*.82, s*.1); g.stroke();
-        g.beginPath(); g.arc(cx, cy+s*.26, s*.045, 0, 7); g.fill();
-      } else if (m === "star") { starPath(g, cx, cy, s*.48); g.fill(); }
+        roundPath(ctx, cx-s*.24, cy-s*.41, s*.48, s*.82, s*.1); ctx.stroke();
+        ctx.beginPath(); ctx.arc(cx, cy+s*.26, s*.045, 0, 7); ctx.fill();
+      } else if (m === "star") { starPath(ctx, cx, cy, s*.48); ctx.fill(); }
       else if (m === "heart") {
-        g.beginPath();
-        g.moveTo(cx, cy+s*.2);
-        g.bezierCurveTo(cx-s, cy-s*.08, cx-s*.45, cy-s*.47, cx, cy-s*.2);
-        g.bezierCurveTo(cx+s*.45, cy-s*.47, cx+s, cy-s*.08, cx, cy+s*.2);
-        g.fill();
+        ctx.beginPath();
+        ctx.moveTo(cx, cy+s*.2);
+        ctx.bezierCurveTo(cx-s, cy-s*.08, cx-s*.45, cy-s*.47, cx, cy-s*.2);
+        ctx.bezierCurveTo(cx+s*.45, cy-s*.47, cx+s, cy-s*.08, cx, cy+s*.2);
+        ctx.fill();
       }
       });
     });
@@ -488,7 +523,7 @@
       id: state.seq++, type, on: true,
       target: INSET.has(type) ? "frame" : "frame",
       sx: p.sx, sy: p.sy, blur: p.sblur, alpha: p.salpha,
-      color: type === "neon" ? val("ink") : "#000000"
+      color: (type === "neon" || type === "glow") ? val("ink") : "#000000"
     };
     if (type === "glow" || type === "neon") L.target = "content";
     state.layers.push(L);
