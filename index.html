@@ -15,7 +15,7 @@
   <link rel="apple-touch-icon" href="icon-home-screen.png" sizes="180x180">
   <link rel="apple-touch-icon" href="icon-home-screen.png" sizes="1024x1024">
   <link rel="icon" type="image/png" href="icon-home-screen.png">
-  <link rel="stylesheet" href="CSS/style.css">
+  <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
   <header class="top">
@@ -81,6 +81,17 @@
         <label class="slide"><span>Noise <em id="noiseVal">6</em></span>
           <input id="noise" type="range" min="0" max="40" value="6">
         </label>
+        <div class="row">
+          <button class="file grow" id="pickDrop" type="button">Lấy màu</button>
+          <label class="field grow"><span>Gắn vào</span>
+            <select id="dropTo">
+              <option value="c1">Nền 1</option>
+              <option value="c2">Nền 2</option>
+              <option value="ink">Chữ A</option>
+              <option value="ink2">Chữ B</option>
+            </select>
+          </label>
+        </div>
       </div>
 
       <div class="pane" data-pane="radius">
@@ -104,6 +115,14 @@
       </div>
 
       <div class="pane" data-pane="shadow">
+        <div class="chips" id="styles">
+          <button type="button" data-style="flat">Phẳng</button>
+          <button type="button" data-style="glass">Kính</button>
+          <button type="button" data-style="neu">Neu</button>
+          <button type="button" data-style="glow">Glow</button>
+          <button type="button" data-style="clay">Sét</button>
+          <button type="button" data-style="soft">Mềm</button>
+        </div>
         <label class="field"><span>Thêm lớp</span>
           <select id="addLayer">
             <option value="">+ Thêm lớp…</option>
@@ -175,7 +194,16 @@
         <label class="slide"><span>Mờ <em id="alphaVal">100</em>%</span>
           <input id="alpha" type="range" min="10" max="100" value="100">
         </label>
-        <label class="check"><input id="keepSvg" type="checkbox"><span>Giữ màu gốc SVG</span></label>
+        <label class="field"><span>Dòng 2</span>
+          <input id="letters2" maxlength="24" placeholder="Phụ đề" value="" autocomplete="off">
+        </label>
+        <label class="slide"><span>Cỡ dòng 2 <em id="size2Val">96</em></span>
+          <input id="size2" type="range" min="0" max="400" value="96">
+        </label>
+        <label class="slide"><span>Giãn dòng <em id="gap2Val">8</em></span>
+          <input id="gap2" type="range" min="-40" max="80" value="8">
+        </label>
+        <label class="check"><input id="snap" type="checkbox" checked><span>Snap tâm khi kéo</span></label>
         <button class="file" id="autoInk" type="button">Màu theo nền</button>
         <select id="mark" hidden>
           <option value="none">Không</option>
@@ -212,9 +240,15 @@
           <label class="check"><input id="flipV" type="checkbox"><span>Lật dọc</span></label>
         </div>
         <button class="file" id="center" type="button">Căn giữa</button>
+        <label class="check"><input id="keepSvg" type="checkbox"><span>Giữ màu gốc SVG</span></label>
       </div>
 
       <div class="pane" data-pane="home">
+        <div class="dock" id="dock">
+          <i></i><i></i>
+          <canvas id="mini" width="180" height="180"></canvas>
+          <i></i>
+        </div>
         <label class="check"><input id="mockOn" type="checkbox" checked><span>Khung xem trước</span></label>
         <label class="field"><span>Tên</span>
           <input id="label" maxlength="14" value="Icon" autocomplete="off">
@@ -228,13 +262,22 @@
             <option value="sunset">Hoàng hôn</option>
           </select>
         </label>
+        <div class="row">
+          <button class="file grow" id="saveLib" type="button">Lưu vào kho</button>
+          <button class="file grow" id="saveStyle" type="button">Lưu style</button>
+        </div>
+        <button class="file" id="applyStyle" type="button">Áp style đã lưu</button>
+        <div class="lib" id="lib"></div>
       </div>
 
       <div class="pane" data-pane="export">
+        <label class="field"><span>Tên file</span>
+          <input id="fileBase" maxlength="32" value="icon-home-screen" autocomplete="off">
+        </label>
         <label class="check"><input id="opaque" type="checkbox" checked><span>PNG nền đặc</span></label>
         <button class="go" id="share1024" type="button">Chia sẻ PNG 1024</button>
         <button class="go alt" id="share180" type="button">Chia sẻ PNG 180</button>
-        <button class="go alt" id="shareZip" type="button">Chia sẻ gói ZIP</button>
+        <button class="go alt" id="shareZip" type="button">Gói webclip ZIP</button>
         <button class="go alt" id="shareSvg" type="button">Chia sẻ SVG</button>
         <button class="go ghost" id="dl1024" type="button">Tải PNG 1024</button>
       </div>
