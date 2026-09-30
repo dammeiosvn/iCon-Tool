@@ -1,15 +1,16 @@
 :root {
-  --bg: #e8eaed;
+  --bg: #eef0f3;
   --fg: #111418;
-  --muted: #5c6670;
+  --muted: #6a727a;
   --card: #ffffff;
-  --line: #e2e6ea;
+  --stage: #e6e8ec;
+  --line: #d8dde3;
   --fill: #eef1f4;
   --accent: #1c8f86;
-  --go: #3dcc6e;
+  --go: #2fbf6a;
   --thumb: #1c8f86;
   --check: #c8cdd2;
-  --rail: 46px;
+  --rail: 44px;
   --safe-t: env(safe-area-inset-top);
   --safe-b: env(safe-area-inset-bottom);
   --safe-r: env(safe-area-inset-right);
@@ -17,12 +18,13 @@
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --bg: #101214;
-    --fg: #f4f6f7;
-    --muted: #9aa3a9;
-    --card: #1a1e22;
-    --line: #2a3036;
-    --fill: #242a30;
+    --bg: #0c0d0f;
+    --fg: #f3f5f6;
+    --muted: #8b949b;
+    --card: #171a1e;
+    --stage: #16181c;
+    --line: #2a2f35;
+    --fill: #22272c;
     --accent: #3dcc6e;
     --go: #3dcc6e;
     --thumb: #3dcc6e;
@@ -41,53 +43,72 @@ html, body {
 }
 
 body {
-  padding: calc(10px + var(--safe-t)) calc(var(--rail) + 10px + var(--safe-r)) calc(16px + var(--safe-b)) 14px;
+  display: flex;
+  flex-direction: column;
+  min-height: 100dvh;
+  padding: calc(8px + var(--safe-t)) calc(12px + var(--safe-r)) calc(12px + var(--safe-b)) 12px;
 }
 
 .top {
   display: flex;
   justify-content: space-between;
-  align-items: flex-end;
+  align-items: center;
   gap: 8px;
-  margin-bottom: 10px;
+  padding: 4px 2px 12px;
 }
-.top h1 { margin: 0; font-size: 20px; letter-spacing: -.02em; }
-.top p { margin: 2px 0 0; color: var(--muted); font-size: 12px; }
+.top h1 { margin: 0; font-size: 22px; font-weight: 700; letter-spacing: -.03em; }
+.top p { margin: 2px 0 0; color: var(--muted); font-size: 12px; letter-spacing: .01em; }
 
-.tools { display: flex; gap: 6px; }
+.tools { display: flex; gap: 8px; }
 .tools button {
-  width: 32px; height: 32px;
-  border: 1px solid color-mix(in srgb, #fff 50%, var(--line));
-  border-radius: 10px;
-  background: color-mix(in srgb, var(--card) 55%, transparent);
-  -webkit-backdrop-filter: blur(16px) saturate(160%);
-  backdrop-filter: blur(16px) saturate(160%);
+  width: 36px; height: 36px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--card);
   color: var(--fg);
-  font-size: 14px;
+  font-size: 15px;
 }
 
-.stage { min-height: 56vh; display: flex; flex-direction: column; align-items: center; justify-content: center; }
+.workspace {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 0;
+}
+
+.stage {
+  flex: 1;
+  max-width: 360px;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  justify-content: center;
+}
 
 .mock {
-  width: min(100%, 420px);
-  padding: 22px 18px 16px;
-  border-radius: 28px;
+  width: 100%;
+  padding: 18px 16px 12px;
+  border-radius: 30px;
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 10px;
-  background: var(--bg);
-  box-shadow: none;
+  gap: 8px;
+  background: var(--stage);
+  border: 1px solid var(--line);
+  box-shadow: 0 1px 0 color-mix(in srgb, #fff 6%, transparent) inset;
 }
-.mock.wall-system { background: var(--bg); }
-.mock.wall-ios { background: linear-gradient(180deg, #5b7cff, #c5b4ff 55%, #f7c6e0); box-shadow: 0 18px 40px rgba(0,0,0,.18); }
-.mock.wall-dark { background: linear-gradient(180deg, #1c1c1e, #3a3a3c); }
-.mock.wall-light { background: linear-gradient(180deg, #dbeafe, #f8fafc); }
-.mock.wall-sunset { background: linear-gradient(180deg, #ff7a59, #ffd29d); }
-.mock.off { background: transparent; box-shadow: none; padding: 0; }
+.mock.wall-system { background: var(--stage); }
+.mock.wall-ios { background: linear-gradient(180deg, #5b7cff, #c5b4ff 55%, #f7c6e0); border: 0; box-shadow: 0 18px 40px rgba(0,0,0,.18); }
+.mock.wall-dark { background: linear-gradient(180deg, #1c1c1e, #3a3a3c); border: 0; }
+.mock.wall-light { background: linear-gradient(180deg, #dbeafe, #f8fafc); border: 0; }
+.mock.wall-sunset { background: linear-gradient(180deg, #ff7a59, #ffd29d); border: 0; }
+.mock.off { background: transparent; border: 0; box-shadow: none; padding: 0; }
 
-.stage-frame { width: min(72vw, 280px); position: relative; }
-.mock.off .stage-frame { width: min(88vw, 360px); }
+.stage-frame { width: 100%; position: relative; }
+.mock.off .stage-frame { width: 100%; }
 
 .stage-frame canvas {
   width: 100%;
@@ -130,31 +151,30 @@ body {
 .warn { margin: 8px 0 0; font-size: 12px; color: #c2410c; }
 
 .rail {
-  position: fixed;
-  top: calc(8px + var(--safe-t));
-  right: calc(6px + var(--safe-r));
-  bottom: calc(8px + var(--safe-b));
+  position: static;
   width: var(--rail);
+  align-self: stretch;
   display: flex;
   flex-direction: column;
-  justify-content: center;
-  gap: 5px;
+  justify-content: space-between;
+  gap: 6px;
   z-index: 40;
+  padding: 2px 0;
 }
 .rail button {
-  flex: 0 0 auto;
-  height: 40px;
-  border: 1px solid color-mix(in srgb, #fff 48%, var(--line));
+  flex: 1 1 0;
+  min-height: 36px;
+  max-height: 46px;
+  border: 1px solid var(--line);
   border-radius: 12px;
-  background: color-mix(in srgb, var(--card) 50%, transparent);
-  -webkit-backdrop-filter: blur(18px) saturate(170%);
-  backdrop-filter: blur(18px) saturate(170%);
+  background: var(--card);
   color: var(--fg);
   font-size: 10px;
-  font-weight: 700;
+  font-weight: 650;
+  letter-spacing: -.01em;
   padding: 0 2px;
-  box-shadow: 0 4px 12px rgba(0,0,0,.08);
-  transition: transform .22s cubic-bezier(.22,1,.36,1), background .28s ease, color .28s ease, border-color .28s ease;
+  box-shadow: none;
+  transition: transform .22s cubic-bezier(.22,1,.36,1), background .28s ease, color .28s ease;
 }
 .rail button:active { transform: scale(.94); }
 .rail button.on {
@@ -165,15 +185,15 @@ body {
 
 .sheet {
   position: fixed;
-  left: 10px;
-  right: calc(var(--rail) + 12px + var(--safe-r));
-  bottom: calc(10px + var(--safe-b));
-  max-height: 46vh;
-  background: color-mix(in srgb, var(--card) 88%, transparent);
-  -webkit-backdrop-filter: blur(18px);
-  backdrop-filter: blur(18px);
+  left: 12px;
+  right: 12px;
+  bottom: calc(12px + var(--safe-b));
+  max-height: 44vh;
+  background: color-mix(in srgb, var(--card) 92%, transparent);
+  -webkit-backdrop-filter: blur(22px) saturate(160%);
+  backdrop-filter: blur(22px) saturate(160%);
   border: 1px solid var(--line);
-  border-radius: 18px;
+  border-radius: 22px;
   z-index: 30;
   display: flex;
   flex-direction: column;
