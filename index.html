@@ -103,9 +103,10 @@
       </div>
 
       <div class="pane" data-pane="shadow">
-        <label class="field"><span>Kiểu bóng</span>
-          <select id="shadowPreset">
-            <option value="none">Không</option>
+        <p class="note">Chọn nhiều kiểu — mỗi kiểu là một lớp, chồng lên nhau.</p>
+        <label class="field"><span>Thêm lớp bóng</span>
+          <select id="addLayer">
+            <option value="">+ Thêm lớp…</option>
             <option value="outer">Bóng Ngoài</option>
             <option value="inset">Bóng Chìm</option>
             <option value="soft">Mờ Diện Rộng</option>
@@ -124,13 +125,18 @@
             <option value="clay">Đất Sét 3D</option>
           </select>
         </label>
+        <div class="layers" id="layerList"></div>
+        <label class="field"><span>Lớp này áp lên</span>
+          <select id="layerTarget">
+            <option value="frame">Khung icon</option>
+            <option value="content">Ảnh / SVG / chữ</option>
+          </select>
+        </label>
         <label class="slide"><span>X <em id="sxVal">0</em></span><input id="sx" type="range" min="-60" max="60" value="0"></label>
         <label class="slide"><span>Y <em id="syVal">18</em></span><input id="sy" type="range" min="-60" max="60" value="18"></label>
         <label class="slide"><span>Làm mờ <em id="sblurVal">24</em></span><input id="sblur" type="range" min="0" max="80" value="24"></label>
         <label class="slide"><span>Độ đậm <em id="salphaVal">40</em></span><input id="salpha" type="range" min="0" max="90" value="40"></label>
         <label class="swatch lone"><input id="scolor" type="color" value="#000000"><span>Màu bóng</span></label>
-        <label class="check"><input id="shadowFrame" type="checkbox" checked><span>Bóng khung icon</span></label>
-        <label class="check"><input id="shadowContent" type="checkbox" checked><span>Bóng ảnh / SVG / chữ</span></label>
         <label class="check"><input id="bakeShadow" type="checkbox"><span>Thu nhỏ icon để chừa bóng khi xuất</span></label>
       </div>
 
@@ -210,7 +216,7 @@
             <option value="sunset">Hoàng hôn</option>
           </select>
         </label>
-        <p class="note">Safari → Chia sẻ → Thêm vào MH chính. Icon tool lấy từ icon-home-screen.png.</p>
+        <p class="note">Safari → Chia sẻ → Thêm vào MH chính.</p>
       </div>
 
       <div class="pane" data-pane="export">
