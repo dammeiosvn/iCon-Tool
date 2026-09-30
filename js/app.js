@@ -38,7 +38,44 @@
     clay: { sx: 0, sy: 8, sblur: 14, salpha: 40 },
   };
 
-  const FIELDS = ["bg","c1","c2","c3","ang","noise","radius","squircle","safeOn","glass","stroke","pad","sx","sy","sblur","salpha","scolor","layerTarget","bakeShadow","mark","letters","font","ink","size","alpha","keepSvg","zoom","px","py","rot","flipH","flipV","mockOn","label","wall","opaque"];
+  const FIELDS = ["bg","c1","c2","c3","ang","noise","radius","squircle","safeOn","glass","stroke","pad","sx","sy","sblur","salpha","scolor","layerTarget","bakeShadow","mark","letters","font","inkMode","ink","ink2","inkAng","size","alpha","keepSvg","zoom","px","py","rot","flipH","flipV","mockOn","label","wall","opaque"];
+
+  const SYMBOLS = [
+    { q: "wifi sóng internet", t: "📶" },
+    { q: "pin battery sạc", t: "🔋" },
+    { q: "sấm sét power", t: "⚡️" },
+    { q: "khóa lock", t: "🔒" },
+    { q: "mở khóa", t: "🔓" },
+    { q: "nhà home", t: "🏠" },
+    { q: "bánh răng cài đặt", m: "gear" },
+    { q: "thư mail", m: "mail" },
+    { q: "điện thoại phone", m: "phone" },
+    { q: "mặt trời sun", m: "sun" },
+    { q: "cộng plus add", m: "plus" },
+    { q: "sao star", m: "star" },
+    { q: "tim heart yêu", m: "heart" },
+    { q: "camera ảnh", t: "📷" },
+    { q: "nhạc music", t: "🎵" },
+    { q: "mic micro", t: "🎤" },
+    { q: "chuông bell", t: "🔔" },
+    { q: "định vị location", t: "📍" },
+    { q: "cloud mây", t: "☁️" },
+    { q: "trăng moon", t: "🌙" },
+    { q: "lửa fire", t: "🔥" },
+    { q: "bóng đá sport", t: "⚽️" },
+    { q: "xe car", t: "🚗" },
+    { q: "máy bay fly", t: "✈️" },
+    { q: "game", t: "🎮" },
+    { q: "thư mục folder", t: "📁" },
+    { q: "link", t: "🔗" },
+    { q: "tìm search", t: "🔍" },
+    { q: "lịch calendar", t: "📅" },
+    { q: "đồng hồ clock", t: "⏰" },
+    { q: "ok check", t: "✅" },
+    { q: "x close", t: "❌" },
+    { q: "play", t: "▶️" },
+    { q: "pause", t: "⏸️" }
+  ];
 
   function val(id) { return $(id).value; }
   function num(id) { return +$(id).value; }
@@ -252,11 +289,22 @@
     g.rotate(num("rot")*Math.PI/180);
     g.scale(on("flipH") ? -1 : 1, on("flipV") ? -1 : 1);
     g.translate(-cx, -cy);
-    const ox = (num("px")-50)/50 * box.w * .35;
-    const oy = (num("py")-50)/50 * box.h * .35;
+    const ox = (num("px")-50)/50 * box.w * 0.9;
+    const oy = (num("py")-50)/50 * box.h * 0.9;
     g.translate(ox, oy);
     fn();
     g.restore();
+  }
+
+  function inkPaint(g, box) {
+    if (val("inkMode") !== "grad") return val("ink");
+    const ang = num("inkAng") * Math.PI / 180;
+    const cx = box.x + box.w/2, cy = box.y + box.h/2;
+    const L = Math.hypot(box.w, box.h) / 2;
+    const gr = g.createLinearGradient(cx-Math.cos(ang)*L, cy-Math.sin(ang)*L, cx+Math.cos(ang)*L, cy+Math.sin(ang)*L);
+    gr.addColorStop(0, val("ink"));
+    gr.addColorStop(1, val("ink2") || val("ink"));
+    return gr;
   }
 
   function drawPhoto(g, box) {
@@ -279,7 +327,7 @@
     o.drawImage(img, 0, 0, off.width, off.height);
     if (!on("keepSvg")) {
       o.globalCompositeOperation = "source-in";
-      o.fillStyle = val("ink");
+      o.fillStyle = inkPaint(o, { x:0, y:0, w:off.width, h:off.height });
       o.fillRect(0,0,off.width,off.height);
     }
     applyContentShadows(g, () => g.drawImage(off, x, y, s, s));
@@ -301,14 +349,15 @@
       if (m === "photo") { drawPhoto(g, box); return; }
       if (m === "svg") { drawSvg(g, box); return; }
       const cx = box.x+box.w/2, cy = box.y+box.h/2, s = num("size");
-      g.fillStyle = g.strokeStyle = val("ink");
+      const paint = inkPaint(g, box);
+      g.fillStyle = g.strokeStyle = paint;
       g.lineWidth = Math.max(10, s*.08);
       g.lineCap = g.lineJoin = "round";
       applyContentShadows(g, () => {
       if (m === "text") {
         g.font = `700 ${s}px ${val("font")}`;
         g.textAlign = "center"; g.textBaseline = "middle";
-        g.fillText((val("letters") || "S").slice(0,4), cx, cy+s*.04);
+        g.fillText((val("letters") || "S").slice(0,24), cx, cy+s*.04);
       } else if (m === "sun") {
         g.beginPath(); g.arc(cx, cy-s*.08, s*.28, 0, 7); g.fill();
         g.fillRect(cx-s*.55, cy+s*.32, s*1.1, Math.max(8,s*.05));
@@ -382,11 +431,11 @@
   }
 
   function syncUI() {
-    const map = { noise:"noiseVal", ang:"angVal", radius:"radiusVal", glass:"glassVal", stroke:"strokeVal", pad:"padVal", sx:"sxVal", sy:"syVal", sblur:"sblurVal", salpha:"salphaVal", size:"sizeVal", alpha:"alphaVal", zoom:"zoomVal", px:"pxVal", py:"pyVal", rot:"rotVal" };
+    const map = { noise:"noiseVal", ang:"angVal", radius:"radiusVal", glass:"glassVal", stroke:"strokeVal", pad:"padVal", sx:"sxVal", sy:"syVal", sblur:"sblurVal", salpha:"salphaVal", size:"sizeVal", alpha:"alphaVal", zoom:"zoomVal", px:"pxVal", py:"pyVal", rot:"rotVal", inkAng:"inkAngVal" };
     Object.entries(map).forEach(([id, lab]) => { if ($(lab)) $(lab).textContent = $(id).value; });
     $("mockName").textContent = val("label") || "Icon";
-    $("mock").className = "mock" + (on("mockOn") ? ` wall-${val("wall")==="ios"?"ios":val("wall")}` : " off");
-    if (val("wall")==="ios" && on("mockOn")) $("mock").className = "mock";
+    $("mock").className = "mock" + (on("mockOn") ? ` wall-${val("wall")}` : " off");
+    if (val("wall")==="ios" && on("mockOn")) $("mock").className = "mock wall-ios";
     $("safe").hidden = !on("safeOn");
     const w = $("warn");
     if (val("mark")==="text") {
@@ -664,6 +713,7 @@
     $("fileCam").onchange = () => loadFile($("fileCam").files[0]);
     $("center").onclick = () => { $("px").value=50; $("py").value=50; $("rot").value=0; draw(); pushHist(); };
     $("autoInk").onclick = () => { $("ink").value = lum(val("c1")) > .45 ? "#111111" : "#ffffff"; draw(); pushHist(); };
+    $("symQ").addEventListener("input", renderSymbols);
     $("undo").onclick = undo; $("redo").onclick = redo;
     $("reset").onclick = () => { location.reload(); };
     $("share1024").onclick = () => exportPng(SIZE, true);
@@ -673,15 +723,15 @@
     $("dl1024").onclick = () => exportPng(SIZE, false);
 
     c.addEventListener("pointerdown", (e) => {
-      if (val("mark")!=="photo" && val("mark")!=="svg" && val("mark")!=="text") return;
+      if (val("mark") === "none") return;
       c.setPointerCapture(e.pointerId);
       state.drag = { x:e.clientX, y:e.clientY, px:num("px"), py:num("py"), id:e.pointerId };
     });
     c.addEventListener("pointermove", (e) => {
       if (!state.drag || state.drag.id!==e.pointerId) return;
-      const k = 80 / Math.max(c.getBoundingClientRect().width, 1);
-      $("px").value = Math.max(0, Math.min(100, state.drag.px - (e.clientX-state.drag.x)*k));
-      $("py").value = Math.max(0, Math.min(100, state.drag.py - (e.clientY-state.drag.y)*k));
+      const k = 55 / Math.max(c.getBoundingClientRect().width, 1);
+      $("px").value = Math.max(-20, Math.min(120, state.drag.px - (e.clientX-state.drag.x)*k));
+      $("py").value = Math.max(-20, Math.min(120, state.drag.py - (e.clientY-state.drag.y)*k));
       live = true; requestDraw(false);
     });
     c.addEventListener("pointerup", () => { live = false; if (state.drag) pushHist(); state.drag = null; });
@@ -697,7 +747,7 @@
         e.preventDefault();
         const [a,b]=e.touches;
         const d = Math.hypot(a.clientX-b.clientX,a.clientY-b.clientY);
-        $("zoom").value = Math.round(Math.max(40, Math.min(240, state.pinch.zoom*(d/state.pinch.dist))));
+        $("zoom").value = Math.round(Math.max(20, Math.min(400, state.pinch.zoom*(d/state.pinch.dist))));
         live = true; requestDraw(false);
       }
     }, { passive:false });
@@ -714,8 +764,25 @@
     const saved = localStorage.getItem(KEY);
     if (saved) writeForm(JSON.parse(saved));
   } catch {}
-  renderLayers();
 
+  function renderSymbols() {
+    const box = $("symGrid"); if (!box) return;
+    const q = (($("symQ") && $("symQ").value) || "").toLowerCase().trim();
+    const list = SYMBOLS.filter((s) => !q || s.q.includes(q) || (s.t && s.t.includes(q)));
+    box.innerHTML = list.slice(0, 24).map((s) =>
+      `<button type="button" class="sym" data-m="${s.m||""}" data-t="${s.t||""}">${s.t || "●"}</button>`
+    ).join("");
+    box.querySelectorAll(".sym").forEach((b) => {
+      b.onclick = () => {
+        if (b.dataset.m) $("mark").value = b.dataset.m;
+        else { $("mark").value = "text"; $("letters").value = b.dataset.t; }
+        draw(); pushHist();
+      };
+    });
+  }
+
+  renderLayers();
+  renderSymbols();
   bind();
   draw();
   pushHist();
