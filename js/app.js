@@ -487,8 +487,9 @@
     const w = $("warn");
     const issues = [];
     if (val("bg") === "clear" && !on("opaque")) issues.push("PNG trong suốt — iOS dễ ra nền đen.");
-    if (num("pad") < 80 && (val("mark") === "text" || val("mark") === "photo" || val("mark") === "svg")) issues.push("Nội dung sát mép safe zone 80%.");
-    if (num("zoom") > 140 && num("pad") < 110) issues.push("Ảnh phóng lớn, iOS sẽ cắt squircle.");
+    const room = SIZE / 2 - Math.max(num("pad"), SIZE * 0.1);
+    if (val("mark") === "text" && num("size") / 2 + 24 > room) issues.push("Chữ sát mép safe zone 80%.");
+    if ((val("mark") === "photo" || val("mark") === "svg") && num("zoom") > 130 && num("pad") < 40) issues.push("Ảnh phóng lớn, iOS sẽ cắt squircle.");
     if (val("mark")==="text") {
       const ok = Math.abs(lum(val("c1"))-lum(val("ink"))) > .28;
       if (!ok && val("bg") !== "clear") issues.push("Chữ/nền tương phản thấp.");
