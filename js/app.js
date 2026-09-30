@@ -38,7 +38,9 @@
     clay: { sx: 0, sy: 8, sblur: 14, salpha: 40 },
   };
 
-  const FIELDS = ["bg","c1","c2","c3","ang","noise","radius","squircle","safeOn","glass","stroke","pad","sx","sy","sblur","salpha","scolor","layerTarget","bakeShadow","mark","letters","font","inkMode","ink","ink2","inkAng","size","alpha","keepSvg","zoom","px","py","rot","flipH","flipV","mockOn","label","wall","opaque"];
+  const FIELDS = ["bg","c1","c2","c3","ang","noise","radius","squircle","safeOn","glass","stroke","pad","sx","sy","sblur","salpha","scolor","layerTarget","bakeShadow","mark","letters","letters2","font","inkMode","ink","ink2","inkAng","size","size2","gap2","alpha","keepSvg","zoom","px","py","rot","flipH","flipV","snap","mockOn","label","wall","opaque","fileBase","dropTo"];
+  const LIB = "tao-icon-lib";
+  const STY = "tao-icon-style";
 
   const SYMBOLS = [
     { q: "wifi sóng internet", t: "📶" },
@@ -392,7 +394,11 @@
       if (m === "text") {
         ctx.font = `700 ${s}px ${val("font")}`;
         ctx.textAlign = "center"; ctx.textBaseline = "middle";
-        ctx.fillText((val("letters") || "S").slice(0,24), cx, cy+s*.04);
+        ctx.fillText((val("letters") || "S").slice(0,24), cx, cy - (val("letters2") ? num("size2")/2 + num("gap2")/2 : 0) + s*.04);
+        if (val("letters2") && num("size2") > 0) {
+          ctx.font = `600 ${num("size2")}px ${val("font")}`;
+          ctx.fillText(val("letters2").slice(0,24), cx, cy + s/2 + num("gap2")/2);
+        }
       } else if (m === "sun") {
         ctx.beginPath(); ctx.arc(cx, cy-s*.08, s*.28, 0, 7); ctx.fill();
         ctx.fillRect(cx-s*.55, cy+s*.32, s*1.1, Math.max(8,s*.05));
@@ -462,11 +468,17 @@
       ctx.stroke();
     }
     ctx.restore();
+    const mini = $("mini");
+    if (mini) {
+      const m = mini.getContext("2d");
+      m.clearRect(0,0,180,180);
+      m.drawImage(c, 0, 0, 180, 180);
+    }
     syncUI();
   }
 
   function syncUI() {
-    const map = { noise:"noiseVal", ang:"angVal", radius:"radiusVal", glass:"glassVal", stroke:"strokeVal", pad:"padVal", sx:"sxVal", sy:"syVal", sblur:"sblurVal", salpha:"salphaVal", size:"sizeVal", alpha:"alphaVal", zoom:"zoomVal", px:"pxVal", py:"pyVal", rot:"rotVal", inkAng:"inkAngVal" };
+    const map = { noise:"noiseVal", ang:"angVal", radius:"radiusVal", glass:"glassVal", stroke:"strokeVal", pad:"padVal", sx:"sxVal", sy:"syVal", sblur:"sblurVal", salpha:"salphaVal", size:"sizeVal", size2:"size2Val", gap2:"gap2Val", alpha:"alphaVal", zoom:"zoomVal", px:"pxVal", py:"pyVal", rot:"rotVal", inkAng:"inkAngVal" };
     Object.entries(map).forEach(([id, lab]) => { if ($(lab)) $(lab).textContent = $(id).value; });
     $("mockName").textContent = val("label") || "Icon";
     $("mock").className = "mock" + (on("mockOn") ? ` wall-${val("wall")}` : " off");
@@ -659,10 +671,14 @@
     setTimeout(() => URL.revokeObjectURL(a.href), 1500);
   }
 
+  function slug() {
+    return (val("fileBase") || val("label") || "icon-home-screen").replace(/[^\w\-]+/g, "-").replace(/-+/g, "-") || "icon-home-screen";
+  }
+
   async function exportPng(px, share) {
     draw();
     const blob = await scaledBlob(px, on("opaque"));
-    const name = px===SIZE ? "icon-home-screen.png" : `icon-${px}.png`;
+    const name = px === SIZE ? `${slug()}.png` : `${slug()}-${px}.png`;
     if (share) await shareOrDownload(name, blob);
     else {
       const a = document.createElement("a"); a.href = URL.createObjectURL(blob); a.download = name; a.click();
@@ -674,9 +690,10 @@
     draw();
     const sizes = [1024,180,167,152,120];
     const files = [];
-    for (const s of sizes) files.push({ name: s===1024 ? "icon-home-screen.png" : `icon-${s}.png`, blob: await scaledBlob(s, on("opaque")) });
-    files.push({ name: "icon-home-screen.svg", blob: new Blob([svgMarkup()], { type:"image/svg+xml" }) });
-    await shareOrDownload("icon-ios-pack.zip", await zipBlobs(files));
+    const base = slug();
+    for (const s of sizes) files.push({ name: s===1024 ? `${base}.png` : `${base}-${s}.png`, blob: await scaledBlob(s, on("opaque")) });
+    files.push({ name: `${base}.svg`, blob: new Blob([svgMarkup()], { type:"image/svg+xml" }) });
+    await shareOrDownload(`${base}-ios.zip`, await zipBlobs(files));
   }
 
   function loadFile(file) {
@@ -754,10 +771,31 @@
     $("share1024").onclick = () => exportPng(SIZE, true);
     $("share180").onclick = () => exportPng(180, true);
     $("shareZip").onclick = exportZip;
-    $("shareSvg").onclick = () => shareOrDownload("icon-home-screen.svg", new Blob([svgMarkup()], { type:"image/svg+xml" }));
+    $("shareSvg").onclick = () => shareOrDownload(`${slug()}.svg`, new Blob([svgMarkup()], { type:"image/svg+xml" }));
     $("dl1024").onclick = () => exportPng(SIZE, false);
+    $("pickDrop").onclick = () => { state.drop = true; sheet.classList.add("ghost"); };
+    $("saveLib").onclick = saveLib;
+    $("saveStyle").onclick = saveStyle;
+    $("applyStyle").onclick = applySavedStyle;
+    $("styles").addEventListener("click", (e) => {
+      const b = e.target.closest("[data-style]");
+      if (b) applyPack(b.dataset.style);
+    });
 
     c.addEventListener("pointerdown", (e) => {
+      if (state.drop) {
+        const r = c.getBoundingClientRect();
+        const x = Math.max(0, Math.min(SIZE-1, Math.floor((e.clientX-r.left)/r.width*SIZE)));
+        const y = Math.max(0, Math.min(SIZE-1, Math.floor((e.clientY-r.top)/r.height*SIZE)));
+        const d = ctx.getImageData(x, y, 1, 1).data;
+        const hex = "#" + [d[0],d[1],d[2]].map((v) => v.toString(16).padStart(2,"0")).join("");
+        const to = val("dropTo") || "c1";
+        if ($(to)) $(to).value = hex;
+        state.drop = false;
+        sheet.classList.remove("ghost");
+        draw(); pushHist();
+        return;
+      }
       if (val("mark") === "none") return;
       c.setPointerCapture(e.pointerId);
       state.drag = { x:e.clientX, y:e.clientY, px:num("px"), py:num("py"), id:e.pointerId };
@@ -769,7 +807,16 @@
       $("py").value = Math.max(-20, Math.min(120, state.drag.py - (e.clientY-state.drag.y)*k));
       live = true; requestDraw(false);
     });
-    c.addEventListener("pointerup", () => { live = false; if (state.drag) pushHist(); state.drag = null; });
+    c.addEventListener("pointerup", () => {
+      live = false;
+      if (state.drag && on("snap")) {
+        if (Math.abs(num("px")-50) < 5) $("px").value = 50;
+        if (Math.abs(num("py")-50) < 5) $("py").value = 50;
+        draw();
+      }
+      if (state.drag) pushHist();
+      state.drag = null;
+    });
     c.addEventListener("touchstart", (e) => {
       if (e.touches.length===2) {
         const [a,b]=e.touches;
@@ -800,6 +847,65 @@
     if (saved) writeForm(JSON.parse(saved));
   } catch {}
 
+  function applyPack(name) {
+    const packs = {
+      flat: { glass:0, stroke:0, pad:44, layers: [] },
+      glass: { glass:30, stroke:10, pad:52, layers: [{ type:"soft", target:"frame" }] },
+      neu: { glass:0, stroke:0, pad:48, layers: [{ type:"neu", target:"frame" }, { type:"neuIn", target:"frame" }] },
+      glow: { glass:6, stroke:0, pad:56, layers: [{ type:"glow", target:"content", color: val("ink") }] },
+      clay: { glass:0, stroke:0, pad:48, layers: [{ type:"clay", target:"content" }] },
+      soft: { glass:10, stroke:4, pad:56, layers: [{ type:"outer", target:"frame" }, { type:"bottom", target:"frame" }] }
+    };
+    const p = packs[name]; if (!p) return;
+    $("glass").value = p.glass; $("stroke").value = p.stroke; $("pad").value = p.pad;
+    state.layers = p.layers.map((L) => {
+      const pr = PRESETS[L.type] || PRESETS.outer;
+      return { id: state.seq++, type: L.type, on: true, target: L.target, sx: pr.sx, sy: pr.sy, blur: pr.sblur, alpha: pr.salpha, color: L.color || "#000000" };
+    });
+    state.active = state.layers.length ? 0 : -1;
+    document.querySelectorAll("#styles [data-style]").forEach((b) => b.classList.toggle("on", b.dataset.style === name));
+    renderLayers(); loadLayerToSliders(); draw(); pushHist();
+  }
+
+  function readLib() { try { return JSON.parse(localStorage.getItem(LIB) || "[]"); } catch { return []; } }
+  function saveLib() {
+    draw();
+    const items = readLib();
+    items.unshift({ id: Date.now(), name: val("label") || "Icon", thumb: c.toDataURL("image/jpeg", 0.7), data: readForm() });
+    localStorage.setItem(LIB, JSON.stringify(items.slice(0, 20)));
+    renderLib();
+  }
+  function saveStyle() {
+    const s = { glass: val("glass"), stroke: val("stroke"), pad: val("pad"), bg: val("bg"), c1: val("c1"), c2: val("c2"), c3: val("c3"), ang: val("ang"), ink: val("ink"), ink2: val("ink2"), inkMode: val("inkMode"), layers: state.layers };
+    localStorage.setItem(STY, JSON.stringify(s));
+  }
+  function applySavedStyle() {
+    try {
+      const s = JSON.parse(localStorage.getItem(STY) || "null");
+      if (!s) return;
+      ["glass","stroke","pad","bg","c1","c2","c3","ang","ink","ink2","inkMode"].forEach((k) => { if (s[k] != null && $(k)) $(k).value = s[k]; });
+      if (s.layers) { state.layers = JSON.parse(JSON.stringify(s.layers)); state.active = 0; }
+      renderLayers(); loadLayerToSliders(); draw(); pushHist();
+    } catch {}
+  }
+  function renderLib() {
+    const box = $("lib"); if (!box) return;
+    const items = readLib();
+    box.innerHTML = items.map((it) =>
+      `<button type="button" data-id="${it.id}"><img alt="" src="${it.thumb}"><span data-del="${it.id}">×</span></button>`
+    ).join("");
+    box.querySelectorAll("button").forEach((b) => {
+      b.onclick = (e) => {
+        if (e.target.dataset.del) {
+          localStorage.setItem(LIB, JSON.stringify(readLib().filter((x) => String(x.id) !== e.target.dataset.del)));
+          renderLib(); return;
+        }
+        const it = readLib().find((x) => String(x.id) === b.dataset.id);
+        if (it && it.data) { writeForm(it.data); draw(); pushHist(); }
+      };
+    });
+  }
+
   function renderSymbols() {
     const box = $("symGrid"); if (!box) return;
     const q = (($("symQ") && $("symQ").value) || "").toLowerCase().trim();
@@ -818,6 +924,7 @@
 
   renderLayers();
   renderSymbols();
+  renderLib();
   bind();
   draw();
   pushHist();
