@@ -6,7 +6,7 @@
   const $ = (id) => document.getElementById(id);
   const sheet = $("sheet");
 
-  const state = { photo: null, svgImg: null, drag: null, pinch: null, layers: [], active: -1, seq: 1 };
+  const state = { photo: null, svgImg: null, drag: null, pinch: null, layers: [], active: -1, seq: 1, kit: [], kitSlot: -1, abPick: "a" };
   const hist = { stack: [], i: -1, lock: false };
 
   const NAMES = {
@@ -38,7 +38,7 @@
     clay: { sx: 0, sy: 8, sblur: 14, salpha: 40 },
   };
 
-  const FIELDS = ["bg","c1","c2","c3","ang","noise","radius","squircle","safeOn","glass","stroke","pad","sx","sy","sblur","salpha","scolor","layerTarget","bakeShadow","mark","letters","letters2","font","inkMode","ink","ink2","inkAng","size","size2","gap2","alpha","keepSvg","zoom","px","py","rot","flipH","flipV","snap","mockOn","label","wall","opaque","fileBase","dropTo"];
+  const FIELDS = ["bg","c1","c2","c3","ang","noise","radius","squircle","safeOn","glass","stroke","pad","sx","sy","sblur","salpha","scolor","layerTarget","bakeShadow","mark","letters","letters2","font","inkMode","ink","ink2","inkAng","size","size2","gap2","alpha","keepSvg","zoom","px","py","rot","flipH","flipV","snap","mockOn","label","wall","opaque","fileBase","dropTo","kitN","scName"];
   const LIB = "tao-icon-lib";
   const STY = "tao-icon-style";
 
@@ -485,11 +485,16 @@
     if (val("wall")==="ios" && on("mockOn")) $("mock").className = "mock wall-ios";
     $("safe").hidden = !on("safeOn");
     const w = $("warn");
+    const issues = [];
+    if (val("bg") === "clear" && !on("opaque")) issues.push("PNG trong suốt — iOS dễ ra nền đen.");
+    if (num("pad") < 80 && (val("mark") === "text" || val("mark") === "photo" || val("mark") === "svg")) issues.push("Nội dung sát mép safe zone 80%.");
+    if (num("zoom") > 140 && num("pad") < 110) issues.push("Ảnh phóng lớn, iOS sẽ cắt squircle.");
     if (val("mark")==="text") {
       const ok = Math.abs(lum(val("c1"))-lum(val("ink"))) > .28;
-      w.hidden = ok;
-      w.textContent = ok ? "" : "Chữ/nền tương phản thấp.";
-    } else w.hidden = true;
+      if (!ok && val("bg") !== "clear") issues.push("Chữ/nền tương phản thấp.");
+    }
+    w.hidden = !issues.length;
+    w.textContent = issues[0] || "";
   }
 
   function readForm() {
@@ -672,17 +677,23 @@
   }
 
   function slug() {
-    return (val("fileBase") || val("label") || "icon-home-screen").replace(/[^\w\-]+/g, "-").replace(/-+/g, "-") || "icon-home-screen";
+    const lab = val("label");
+    if (lab && lab !== "Icon") return fileSlug(lab);
+    return fileSlug(val("fileBase") || "icon-home-screen");
+  }
+  function fileSlug(s) {
+    return String(s || "icon").normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^\w\-]+/g, "-").replace(/-+/g, "-").replace(/^-|-$/g, "") || "icon";
   }
 
   async function exportPng(px, share) {
     draw();
     const blob = await scaledBlob(px, on("opaque"));
     const name = px === SIZE ? `${slug()}.png` : `${slug()}-${px}.png`;
-    if (share) await shareOrDownload(name, blob);
+    if (share) { await shareOrDownload(name, blob); showTip(); }
     else {
       const a = document.createElement("a"); a.href = URL.createObjectURL(blob); a.download = name; a.click();
       setTimeout(() => URL.revokeObjectURL(a.href), 1500);
+      showTip();
     }
   }
 
@@ -694,6 +705,7 @@
     for (const s of sizes) files.push({ name: s===1024 ? `${base}.png` : `${base}-${s}.png`, blob: await scaledBlob(s, on("opaque")) });
     files.push({ name: `${base}.svg`, blob: new Blob([svgMarkup()], { type:"image/svg+xml" }) });
     await shareOrDownload(`${base}-ios.zip`, await zipBlobs(files));
+    showTip();
   }
 
   function loadFile(file) {
@@ -780,6 +792,13 @@
     $("saveLib").onclick = saveLib;
     $("saveStyle").onclick = saveStyle;
     $("applyStyle").onclick = applySavedStyle;
+    $("snapA").onclick = () => snapAB("abAc");
+    $("snapB").onclick = () => snapAB("abBc");
+    $("abA").onclick = () => { state.abPick = "a"; markAB(); };
+    $("abB").onclick = () => { state.abPick = "b"; markAB(); };
+    $("kitN").addEventListener("change", renderKit);
+    $("exportKit").onclick = exportKit;
+    $("fileKit").onchange = () => loadKitFile($("fileKit").files[0]);
     $("styles").addEventListener("click", (e) => {
       const b = e.target.closest("[data-style]");
       if (b) applyPack(b.dataset.style);
@@ -925,9 +944,91 @@
     });
   }
 
+  function snapAB(id) {
+    const t = $(id); if (!t) return;
+    const g = t.getContext("2d");
+    g.clearRect(0,0,160,160);
+    g.drawImage(c, 0, 0, 160, 160);
+  }
+  function markAB() {
+    if ($("abA")) $("abA").classList.toggle("on", state.abPick === "a");
+    if ($("abB")) $("abB").classList.toggle("on", state.abPick === "b");
+  }
+  function showTip() {
+    const tip = $("tip"); if (!tip) return;
+    const name = val("scName") || val("label") || "Icon";
+    const url = "shortcuts://run-shortcut?name=" + encodeURIComponent(name);
+    $("tipText").textContent = "Lưu ảnh xong → mở Shortcuts «" + name + "» → chọn ảnh vừa lưu.";
+    $("tipLink").href = url;
+    const qr = $("tipQr");
+    qr.src = "https://api.qrserver.com/v1/create-qr-code/?size=160x160&data=" + encodeURIComponent(url);
+    qr.hidden = false;
+    tip.hidden = false;
+  }
+  function kitCount() { return Math.max(6, Math.min(12, num("kitN") || 8)); }
+  function renderKit() {
+    const box = $("kit"); if (!box) return;
+    const n = kitCount();
+    while (state.kit.length < n) state.kit.push({ name: "", img: null, thumb: "" });
+    state.kit = state.kit.slice(0, n);
+    box.innerHTML = state.kit.map((s, i) => s.thumb
+      ? `<div class="slot" data-i="${i}"><img alt="" src="${s.thumb}"><input data-name="${i}" maxlength="14" value="${s.name || ""}" placeholder="Tên MH"></div>`
+      : `<button type="button" class="slot empty" data-i="${i}">+</button>`
+    ).join("");
+    box.querySelectorAll("[data-i]").forEach((el) => {
+      el.addEventListener("click", (e) => {
+        if (e.target.tagName === "INPUT") return;
+        state.kitSlot = +el.dataset.i;
+        $("fileKit").click();
+      });
+    });
+    box.querySelectorAll("[data-name]").forEach((inp) => {
+      inp.addEventListener("input", () => { state.kit[+inp.dataset.name].name = inp.value; });
+    });
+  }
+  function loadKitFile(file) {
+    if (!file || state.kitSlot < 0) return;
+    const i = state.kitSlot;
+    const reader = new FileReader();
+    reader.onload = () => {
+      const img = new Image();
+      img.onload = () => {
+        state.kit[i].img = img;
+        state.kit[i].thumb = reader.result;
+        if (!state.kit[i].name) state.kit[i].name = (file.name || "").replace(/\.[^.]+$/, "").slice(0, 14);
+        renderKit();
+      };
+      img.src = reader.result;
+    };
+    reader.readAsDataURL(file);
+  }
+  async function exportKit() {
+    const slots = state.kit.filter((s) => s.img);
+    if (!slots.length) return;
+    const keep = { photo: state.photo, mark: val("mark"), label: val("label") };
+    const files = [];
+    for (const s of slots) {
+      state.photo = s.img;
+      $("mark").value = "photo";
+      $("label").value = s.name || "Icon";
+      draw();
+      const base = fileSlug(s.name || "icon");
+      files.push({ name: `${base}.png`, blob: await scaledBlob(SIZE, on("opaque")) });
+      files.push({ name: `${base}-180.png`, blob: await scaledBlob(180, on("opaque")) });
+    }
+    state.photo = keep.photo;
+    $("mark").value = keep.mark;
+    $("label").value = keep.label;
+    draw();
+    await shareOrDownload("bo-icon-ios.zip", await zipBlobs(files));
+    showTip();
+  }
+
   renderLayers();
   renderSymbols();
   renderLib();
+  renderKit();
+  markAB();
   bind();
   draw();
   pushHist();
