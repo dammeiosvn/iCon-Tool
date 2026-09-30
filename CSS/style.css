@@ -151,20 +151,21 @@ body {
 .warn { margin: 8px 0 0; font-size: 12px; color: #c2410c; }
 
 .rail {
-  position: static;
+  position: relative;
   width: var(--rail);
-  align-self: stretch;
+  align-self: center;
   display: flex;
   flex-direction: column;
-  justify-content: space-between;
+  justify-content: flex-start;
   gap: 6px;
-  z-index: 40;
+  z-index: 20;
   padding: 2px 0;
 }
 .rail button {
-  flex: 1 1 0;
-  min-height: 36px;
-  max-height: 46px;
+  flex: 0 0 auto;
+  height: 40px;
+  min-height: 40px;
+  max-height: 40px;
   border: 1px solid var(--line);
   border-radius: 12px;
   background: var(--card);
@@ -186,7 +187,7 @@ body {
 .sheet {
   position: fixed;
   left: 12px;
-  right: 12px;
+  right: calc(12px + var(--rail) + 8px + var(--safe-r));
   bottom: calc(12px + var(--safe-b));
   max-height: 44vh;
   background: color-mix(in srgb, var(--card) 92%, transparent);
