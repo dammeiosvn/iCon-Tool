@@ -1,7 +1,7 @@
 {
-  "name": "Tạo Icon",
-  "short_name": "Tạo Icon",
-  "description": "Tạo icon phím tắt và webclip cho iOS",
+  "name": "Tạo Biểu Tượng IOS",
+  "short_name": "Biểu Tượng",
+  "description": "Tạo biểu tượng phím tắt và webclip cho iOS",
   "start_url": "./",
   "scope": "./",
   "display": "standalone",
