@@ -15,7 +15,7 @@
   <link rel="apple-touch-icon" href="icon-home-screen.png" sizes="180x180">
   <link rel="apple-touch-icon" href="icon-home-screen.png" sizes="1024x1024">
   <link rel="icon" type="image/png" href="icon-home-screen.png">
-  <link rel="stylesheet" href="CSS/style.css">
+  <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
   <header class="top">
@@ -79,16 +79,14 @@
         <label class="slide"><span>Noise <em id="noiseVal">6</em></span>
           <input id="noise" type="range" min="0" max="40" value="6">
         </label>
-        <p class="note">Hạt phủ lên nền và icon. Nền trong suốt + ảnh phủ kín thì kéo mạnh hơn mới thấy.</p>
       </div>
 
       <div class="pane" data-pane="radius">
         <label class="slide"><span>Bo góc <em id="radiusVal">0</em></span>
           <input id="radius" type="range" min="0" max="512" value="0">
         </label>
-        <label class="check"><input id="squircle" type="checkbox"><span>Xem squircle iOS (xuất vẫn vuông nếu bo = 0)</span></label>
-        <label class="check"><input id="safeOn" type="checkbox"><span>Lưới safe zone 80%</span></label>
-        <p class="note">0 = để iOS tự cắt. 512 = tròn.</p>
+        <label class="check"><input id="squircle" type="checkbox"><span>Squircle iOS</span></label>
+        <label class="check"><input id="safeOn" type="checkbox"><span>Safe zone</span></label>
       </div>
 
       <div class="pane" data-pane="glass">
@@ -104,8 +102,7 @@
       </div>
 
       <div class="pane" data-pane="shadow">
-        <p class="note">Chọn nhiều kiểu — mỗi kiểu là một lớp, chồng lên nhau.</p>
-        <label class="field"><span>Thêm lớp bóng</span>
+        <label class="field"><span>Thêm lớp</span>
           <select id="addLayer">
             <option value="">+ Thêm lớp…</option>
             <option value="outer">Bóng Ngoài</option>
@@ -142,56 +139,68 @@
       </div>
 
       <div class="pane" data-pane="mark">
-        <label class="field"><span>Ký hiệu</span>
-          <select id="mark">
-            <option value="none">Không</option>
-            <option value="text" selected>Chữ / emoji</option>
-            <option value="sun">Mặt trời</option>
-            <option value="plus">Dấu cộng</option>
-            <option value="gear">Bánh răng</option>
-            <option value="mail">Thư</option>
-            <option value="phone">Điện thoại</option>
-            <option value="star">Sao</option>
-            <option value="heart">Trái tim</option>
-            <option value="svg">SVG của bạn</option>
-            <option value="photo">Ảnh trong khung</option>
+        <label class="field"><span>Tìm symbol</span>
+          <input id="symQ" type="search" placeholder="wifi, pin, tim…" autocomplete="off">
+        </label>
+        <div class="symgrid" id="symGrid"></div>
+        <label class="field"><span>Chữ</span>
+          <input id="letters" maxlength="24" placeholder="Tên icon" value="S" autocomplete="off">
+        </label>
+        <label class="field"><span>Font</span>
+          <select id="font">
+            <option value="system-ui, -apple-system, sans-serif">SF / System</option>
+            <option value="Georgia, serif">Georgia</option>
+            <option value="'Courier New', monospace">Courier New</option>
+            <option value="'Arial Black', sans-serif">Arial Black</option>
           </select>
         </label>
-        <label class="field"><span>Chữ / emoji</span>
-          <input id="letters" maxlength="4" placeholder="Aa / 😀" value="S" autocomplete="off">
+        <label class="field"><span>Màu chữ / SVG</span>
+          <select id="inkMode">
+            <option value="solid">Một màu</option>
+            <option value="grad">Gradient</option>
+          </select>
         </label>
-        <div class="row">
-          <label class="field grow"><span>Font</span>
-            <select id="font">
-              <option value="system-ui, -apple-system, sans-serif">SF / System</option>
-              <option value="Georgia, serif">Georgia</option>
-              <option value="'Courier New', monospace">Courier New</option>
-              <option value="'Arial Black', sans-serif">Arial Black</option>
-            </select>
-          </label>
-          <label class="swatch"><input id="ink" type="color" value="#ffffff"><span>Màu chữ/SVG</span></label>
+        <div class="swatches">
+          <label class="swatch"><input id="ink" type="color" value="#5ac8fa"><span>Màu A</span></label>
+          <label class="swatch"><input id="ink2" type="color" value="#007aff"><span>Màu B</span></label>
         </div>
-        <label class="slide"><span>Cỡ <em id="sizeVal">220</em></span>
-          <input id="size" type="range" min="40" max="520" value="220">
+        <label class="slide"><span>Góc màu <em id="inkAngVal">90</em>°</span>
+          <input id="inkAng" type="range" min="0" max="360" value="90">
         </label>
-        <label class="slide"><span>Mờ nội dung <em id="alphaVal">100</em>%</span>
+        <label class="slide"><span>Cỡ <em id="sizeVal">220</em></span>
+          <input id="size" type="range" min="12" max="900" value="220">
+        </label>
+        <label class="slide"><span>Mờ <em id="alphaVal">100</em>%</span>
           <input id="alpha" type="range" min="10" max="100" value="100">
         </label>
         <label class="check"><input id="keepSvg" type="checkbox"><span>Giữ màu gốc SVG</span></label>
-        <button class="file" id="autoInk" type="button">Tự chọn màu chữ theo nền</button>
+        <button class="file" id="autoInk" type="button">Màu theo nền</button>
+        <select id="mark" hidden>
+          <option value="none">Không</option>
+          <option value="text" selected>Chữ</option>
+          <option value="sun">sun</option>
+          <option value="plus">plus</option>
+          <option value="gear">gear</option>
+          <option value="mail">mail</option>
+          <option value="phone">phone</option>
+          <option value="star">star</option>
+          <option value="heart">heart</option>
+          <option value="svg">svg</option>
+          <option value="photo">photo</option>
+        </select>
       </div>
 
       <div class="pane" data-pane="media">
         <button class="file" id="pick" type="button">Chọn ảnh / SVG</button>
         <button class="file" id="cam" type="button">Chụp ảnh</button>
         <label class="slide"><span>Phóng <em id="zoomVal">100</em>%</span>
-          <input id="zoom" type="range" min="40" max="240" value="100">
+          <input id="zoom" type="range" min="20" max="400" value="100">
         </label>
         <label class="slide"><span>Ngang <em id="pxVal">50</em></span>
-          <input id="px" type="range" min="0" max="100" value="50">
+          <input id="px" type="range" min="-20" max="120" value="50">
         </label>
         <label class="slide"><span>Dọc <em id="pyVal">50</em></span>
-          <input id="py" type="range" min="0" max="100" value="50">
+          <input id="py" type="range" min="-20" max="120" value="50">
         </label>
         <label class="slide"><span>Xoay <em id="rotVal">0</em>°</span>
           <input id="rot" type="range" min="-180" max="180" value="0">
@@ -201,27 +210,26 @@
           <label class="check"><input id="flipV" type="checkbox"><span>Lật dọc</span></label>
         </div>
         <button class="file" id="center" type="button">Căn giữa</button>
-        <p class="note">Kéo trên khung, chụm để phóng, dán ảnh từ clipboard.</p>
       </div>
 
       <div class="pane" data-pane="home">
-        <label class="check"><input id="mockOn" type="checkbox" checked><span>Xem như màn hình chính iOS</span></label>
-        <label class="field"><span>Tên dưới icon</span>
+        <label class="check"><input id="mockOn" type="checkbox" checked><span>Khung xem trước</span></label>
+        <label class="field"><span>Tên</span>
           <input id="label" maxlength="14" value="Icon" autocomplete="off">
         </label>
-        <label class="field"><span>Wallpaper giả</span>
+        <label class="field"><span>Nền khung</span>
           <select id="wall">
-            <option value="ios">iOS mặc định</option>
+            <option value="system" selected>Hệ thống</option>
+            <option value="ios">Wallpaper iOS</option>
             <option value="dark">Tối</option>
             <option value="light">Sáng</option>
             <option value="sunset">Hoàng hôn</option>
           </select>
         </label>
-        <p class="note">Safari → Chia sẻ → Thêm vào MH chính. Icon tool lấy từ icon-home-screen.png.</p>
       </div>
 
       <div class="pane" data-pane="export">
-        <label class="check"><input id="opaque" type="checkbox" checked><span>Xuất PNG nền đặc (tránh nền đen iOS)</span></label>
+        <label class="check"><input id="opaque" type="checkbox" checked><span>PNG nền đặc</span></label>
         <button class="go" id="share1024" type="button">Chia sẻ PNG 1024</button>
         <button class="go alt" id="share180" type="button">Chia sẻ PNG 180</button>
         <button class="go alt" id="shareZip" type="button">Chia sẻ gói ZIP</button>
