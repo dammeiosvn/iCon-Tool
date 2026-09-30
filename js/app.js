@@ -6,8 +6,17 @@
   const $ = (id) => document.getElementById(id);
   const sheet = $("sheet");
 
-  const state = { photo: null, svgImg: null, drag: null, pinch: null };
+  const state = { photo: null, svgImg: null, drag: null, pinch: null, layers: [], active: -1, seq: 1 };
   const hist = { stack: [], i: -1, lock: false };
+
+  const NAMES = {
+    outer: "Bóng Ngoài", inset: "Bóng Chìm", soft: "Mờ Diện Rộng", hard: "Nổi Khối 3D",
+    glow: "Phát Sáng", bottom: "Bóng Dưới", floating: "Nổi Bay", pressed: "Ấn Xuống",
+    pop: "Pop Bubble", double: "Viền Kép", neu: "Neu Nổi", neuIn: "Neu Chìm",
+    neon: "Neon", long: "Bóng Dài", crisp: "Sắc Nét", clay: "Đất Sét"
+  };
+  const INSET = new Set(["inset","pressed","neuIn","clay"]);
+  const DUAL = new Set(["neu","double"]);
 
   const PRESETS = {
     none: { sx: 0, sy: 0, sblur: 0, salpha: 0 },
@@ -29,7 +38,7 @@
     clay: { sx: 0, sy: 8, sblur: 14, salpha: 40 },
   };
 
-  const FIELDS = ["bg","c1","c2","c3","ang","noise","radius","squircle","safeOn","glass","stroke","pad","shadowPreset","sx","sy","sblur","salpha","scolor","shadowFrame","shadowContent","bakeShadow","mark","letters","font","ink","size","alpha","keepSvg","zoom","px","py","rot","flipH","flipV","mockOn","label","wall","opaque"];
+  const FIELDS = ["bg","c1","c2","c3","ang","noise","radius","squircle","safeOn","glass","stroke","pad","sx","sy","sblur","salpha","scolor","layerTarget","bakeShadow","mark","letters","font","ink","size","alpha","keepSvg","zoom","px","py","rot","flipH","flipV","mockOn","label","wall","opaque"];
 
   function val(id) { return $(id).value; }
   function num(id) { return +$(id).value; }
@@ -77,7 +86,7 @@
   }
 
   function iconBox() {
-    const bake = on("bakeShadow") && val("shadowPreset") !== "none";
+    const bake = on("bakeShadow") && state.layers.some((L) => L.on && L.target === "frame");
     const m = bake ? 90 : 0;
     return { x:m, y:m, w:SIZE-m*2, h:SIZE-m*2, r: num("radius")*((SIZE-m*2)/SIZE) };
   }
@@ -106,51 +115,69 @@
     }
   }
 
-  function applyContentShadow(g) {
-    if (!on("shadowContent") || num("salpha") <= 0) { clearShadow(g); return; }
-    const a = num("salpha")/100;
-    g.shadowColor = val("shadowPreset")==="neon" ? hexAlpha(val("ink"), a) : hexAlpha(val("scolor"), a);
-    g.shadowBlur = num("sblur")*2;
-    g.shadowOffsetX = num("sx")*2;
-    g.shadowOffsetY = num("sy")*2;
-  }
-  function clearShadow(g) {
-    g.shadowColor = "transparent"; g.shadowBlur = 0; g.shadowOffsetX = 0; g.shadowOffsetY = 0;
+  function activeLayer() { return state.layers[state.active] || null; }
+  function layerColor(L, a) {
+    return L.type === "neon" ? hexAlpha(val("ink"), a) : hexAlpha(L.color, a);
   }
 
-  function applyOuterShadow(g, box, preset) {
-    if (!on("shadowFrame")) return;
-    const a = num("salpha")/100;
-    if (a <= 0 || preset === "none") return;
+  function applyContentShadows(g, drawFn) {
+    const list = state.layers.filter((L) => L.on && L.target === "content" && L.alpha > 0);
+    list.forEach((L) => {
+      g.save();
+      g.shadowColor = layerColor(L, L.alpha/100);
+      g.shadowBlur = L.blur * 2;
+      g.shadowOffsetX = L.sx * 2;
+      g.shadowOffsetY = L.sy * 2;
+      drawFn();
+      g.restore();
+    });
+    clearShadow(g);
+    drawFn();
+    clearShadow(g);
+  }
+
+  function applyFrameLayer(g, box, L) {
+    const a = L.alpha/100;
+    if (a <= 0) return;
     g.save();
-    g.shadowBlur = num("sblur")*2;
-    if (preset === "neu" || preset === "double") {
+    g.shadowBlur = L.blur * 2;
+    if (DUAL.has(L.type)) {
       g.shadowColor = hexAlpha("#000000", a);
-      g.shadowOffsetX = num("sx")*2; g.shadowOffsetY = num("sy")*2;
+      g.shadowOffsetX = L.sx*2; g.shadowOffsetY = L.sy*2;
       clipIcon(g, box); g.fillStyle = "#000"; g.fill();
       g.shadowColor = hexAlpha("#ffffff", Math.min(.7, a+.15));
-      g.shadowOffsetX = -num("sx")*2; g.shadowOffsetY = -num("sy")*2;
+      g.shadowOffsetX = -L.sx*2; g.shadowOffsetY = -L.sy*2;
       g.fill();
     } else {
-      g.shadowColor = preset==="neon" ? hexAlpha(val("ink"), a) : hexAlpha(val("scolor"), a);
-      g.shadowOffsetX = num("sx")*2; g.shadowOffsetY = num("sy")*2;
+      g.shadowColor = layerColor(L, a);
+      g.shadowOffsetX = L.sx*2; g.shadowOffsetY = L.sy*2;
       clipIcon(g, box); g.fillStyle = "#000"; g.fill();
     }
     g.restore();
   }
 
-  function applyInset(g, box, preset) {
-    if (!on("shadowFrame") || !["inset","pressed","neuIn","clay"].includes(preset)) return;
-    const a = num("salpha")/100;
+  function applyInsetLayer(g, box, L) {
+    const a = L.alpha/100;
+    if (a <= 0) return;
     g.save();
     clipIcon(g, box); g.clip();
-    g.strokeStyle = hexAlpha(val("scolor"), a);
-    g.lineWidth = Math.max(8, num("sblur"));
-    g.shadowColor = hexAlpha(val("scolor"), a);
-    g.shadowBlur = num("sblur");
-    g.shadowOffsetX = num("sx"); g.shadowOffsetY = num("sy");
+    g.strokeStyle = layerColor(L, a);
+    g.lineWidth = Math.max(8, L.blur);
+    g.shadowColor = layerColor(L, a);
+    g.shadowBlur = L.blur;
+    g.shadowOffsetX = L.sx; g.shadowOffsetY = L.sy;
     clipIcon(g, box); g.stroke();
+    if (L.type === "neuIn") {
+      g.shadowColor = hexAlpha("#ffffff", a*.6);
+      g.shadowOffsetX = -L.sx; g.shadowOffsetY = -L.sy;
+      g.strokeStyle = "rgba(255,255,255,.2)";
+      g.stroke();
+    }
     g.restore();
+  }
+
+  function clearShadow(g) {
+    g.shadowColor = "transparent"; g.shadowBlur = 0; g.shadowOffsetX = 0; g.shadowOffsetY = 0;
   }
 
   function withContentXform(g, box, fn) {
@@ -161,9 +188,7 @@
     g.rotate(num("rot")*Math.PI/180);
     g.scale(on("flipH") ? -1 : 1, on("flipV") ? -1 : 1);
     g.translate(-cx, -cy);
-    const ox = (num("px")-50)/50 * box.w * .35;
-    const oy = (num("py")-50)/50 * box.h * .35;
-    g.translate(ox, oy);
+    g.translate((num("px")-50)/50 * box.w * .35, (num("py")-50)/50 * box.h * .35);
     fn();
     g.restore();
   }
@@ -175,9 +200,7 @@
     let dw, dh;
     if (ir > br) { dh = box.h*zoom; dw = dh*ir; }
     else { dw = box.w*zoom; dh = dw/ir; }
-    applyContentShadow(g);
-    g.drawImage(img, box.x+box.w/2-dw/2, box.y+box.h/2-dh/2, dw, dh);
-    clearShadow(g);
+    applyContentShadows(g, () => g.drawImage(img, box.x+box.w/2-dw/2, box.y+box.h/2-dh/2, dw, dh));
   }
 
   function drawSvg(g, box) {
@@ -193,9 +216,7 @@
       o.fillStyle = val("ink");
       o.fillRect(0,0,off.width,off.height);
     }
-    applyContentShadow(g);
-    g.drawImage(off, x, y, s, s);
-    clearShadow(g);
+    applyContentShadows(g, () => g.drawImage(off, x, y, s, s));
   }
 
   function starPath(g, cx, cy, r) {
@@ -217,57 +238,60 @@
       g.fillStyle = g.strokeStyle = val("ink");
       g.lineWidth = Math.max(10, s*.08);
       g.lineCap = g.lineJoin = "round";
-      applyContentShadow(g);
-      if (m === "text") {
-        g.font = `700 ${s}px ${val("font")}`;
-        g.textAlign = "center"; g.textBaseline = "middle";
-        g.fillText((val("letters") || "S").slice(0,4), cx, cy+s*.04);
-      } else if (m === "sun") {
-        g.beginPath(); g.arc(cx, cy-s*.08, s*.28, 0, 7); g.fill();
-        g.fillRect(cx-s*.55, cy+s*.32, s*1.1, Math.max(8,s*.05));
-      } else if (m === "plus") {
-        const t = Math.max(16,s*.18);
-        g.fillRect(cx-t/2, cy-s/2, t, s); g.fillRect(cx-s/2, cy-t/2, s, t);
-      } else if (m === "gear") {
-        g.beginPath(); g.arc(cx, cy, s*.22, 0, 7); g.stroke();
-        for (let i=0;i<8;i++) {
-          const t=i/8*Math.PI*2;
+      applyContentShadows(g, () => {
+        if (m === "text") {
+          g.font = `700 ${s}px ${val("font")}`;
+          g.textAlign = "center"; g.textBaseline = "middle";
+          g.fillText((val("letters") || "S").slice(0,4), cx, cy+s*.04);
+        } else if (m === "sun") {
+          g.beginPath(); g.arc(cx, cy-s*.08, s*.28, 0, 7); g.fill();
+          g.fillRect(cx-s*.55, cy+s*.32, s*1.1, Math.max(8,s*.05));
+        } else if (m === "plus") {
+          const t = Math.max(16,s*.18);
+          g.fillRect(cx-t/2, cy-s/2, t, s); g.fillRect(cx-s/2, cy-t/2, s, t);
+        } else if (m === "gear") {
+          g.beginPath(); g.arc(cx, cy, s*.22, 0, 7); g.stroke();
+          for (let i=0;i<8;i++) {
+            const t=i/8*Math.PI*2;
+            g.beginPath();
+            g.moveTo(cx+Math.cos(t)*s*.3, cy+Math.sin(t)*s*.3);
+            g.lineTo(cx+Math.cos(t)*s*.42, cy+Math.sin(t)*s*.42); g.stroke();
+          }
+        } else if (m === "mail") {
+          const w=s*1.05,h=s*.72;
+          g.strokeRect(cx-w/2, cy-h/2, w, h);
+          g.beginPath(); g.moveTo(cx-w/2, cy-h/2); g.lineTo(cx, cy+h*.08); g.lineTo(cx+w/2, cy-h/2); g.stroke();
+        } else if (m === "phone") {
+          roundPath(g, cx-s*.24, cy-s*.41, s*.48, s*.82, s*.1); g.stroke();
+          g.beginPath(); g.arc(cx, cy+s*.26, s*.045, 0, 7); g.fill();
+        } else if (m === "star") { starPath(g, cx, cy, s*.48); g.fill(); }
+        else if (m === "heart") {
           g.beginPath();
-          g.moveTo(cx+Math.cos(t)*s*.3, cy+Math.sin(t)*s*.3);
-          g.lineTo(cx+Math.cos(t)*s*.42, cy+Math.sin(t)*s*.42); g.stroke();
+          g.moveTo(cx, cy+s*.2);
+          g.bezierCurveTo(cx-s, cy-s*.08, cx-s*.45, cy-s*.47, cx, cy-s*.2);
+          g.bezierCurveTo(cx+s*.45, cy-s*.47, cx+s, cy-s*.08, cx, cy+s*.2);
+          g.fill();
         }
-      } else if (m === "mail") {
-        const w=s*1.05,h=s*.72;
-        g.strokeRect(cx-w/2, cy-h/2, w, h);
-        g.beginPath(); g.moveTo(cx-w/2, cy-h/2); g.lineTo(cx, cy+h*.08); g.lineTo(cx+w/2, cy-h/2); g.stroke();
-      } else if (m === "phone") {
-        roundPath(g, cx-s*.24, cy-s*.41, s*.48, s*.82, s*.1); g.stroke();
-        g.beginPath(); g.arc(cx, cy+s*.26, s*.045, 0, 7); g.fill();
-      } else if (m === "star") { starPath(g, cx, cy, s*.48); g.fill(); }
-      else if (m === "heart") {
-        g.beginPath();
-        g.moveTo(cx, cy+s*.2);
-        g.bezierCurveTo(cx-s, cy-s*.08, cx-s*.45, cy-s*.47, cx, cy-s*.2);
-        g.bezierCurveTo(cx+s*.45, cy-s*.47, cx+s, cy-s*.08, cx, cy+s*.2);
-        g.fill();
-      }
-      clearShadow(g);
+      });
     });
   }
 
   function draw() {
     ctx.clearRect(0,0,SIZE,SIZE);
     const box = iconBox();
-    const preset = val("shadowPreset");
     const pad = num("pad");
     const inner = { x:box.x+pad, y:box.y+pad, w:Math.max(8,box.w-pad*2), h:Math.max(8,box.h-pad*2), r:Math.max(0,box.r-pad*.35) };
-    if (preset !== "none" && !["inset","pressed","neuIn","clay"].includes(preset)) applyOuterShadow(ctx, box, preset);
+    state.layers.forEach((L) => {
+      if (L.on && L.target === "frame" && !INSET.has(L.type)) applyFrameLayer(ctx, box, L);
+    });
     ctx.save();
     clipIcon(ctx, box); ctx.clip();
     fillBackground(ctx, box);
     if (num("glass")>0) { ctx.fillStyle = `rgba(255,255,255,${num("glass")/100})`; ctx.fillRect(box.x,box.y,box.w,box.h); }
     drawMark(ctx, inner);
-    applyInset(ctx, box, preset);
+    state.layers.forEach((L) => {
+      if (L.on && L.target === "frame" && INSET.has(L.type)) applyInsetLayer(ctx, box, L);
+    });
     if (num("stroke")>0) {
       ctx.strokeStyle = "rgba(255,255,255,.78)";
       ctx.lineWidth = num("stroke");
@@ -299,6 +323,7 @@
       const el = $(id); if (!el) return;
       o[id] = el.type === "checkbox" ? el.checked : el.value;
     });
+    o.layers = state.layers; o.active = state.active; o.seq = state.seq;
     return o;
   }
   function writeForm(o) {
@@ -307,7 +332,11 @@
       const el = $(id); if (!el || o[id] == null) return;
       if (el.type === "checkbox") el.checked = !!o[id]; else el.value = o[id];
     });
+    if (o.layers) state.layers = JSON.parse(JSON.stringify(o.layers));
+    if (o.active != null) state.active = o.active;
+    if (o.seq) state.seq = o.seq;
     hist.lock = false;
+    renderLayers(); loadLayerToSliders();
   }
   function pushHist() {
     if (hist.lock) return;
@@ -322,13 +351,51 @@
   function undo() { if (hist.i<=0) return; hist.i--; writeForm(JSON.parse(hist.stack[hist.i])); draw(); }
   function redo() { if (hist.i>=hist.stack.length-1) return; hist.i++; writeForm(JSON.parse(hist.stack[hist.i])); draw(); }
 
-  function applyPreset() {
-    const p = PRESETS[val("shadowPreset")]; if (!p) return;
+  function addLayer(type) {
+    const p = PRESETS[type] || PRESETS.outer;
+    state.layers.push({
+      id: state.seq++, type, on: true,
+      target: (type === "glow" || type === "neon") ? "content" : "frame",
+      sx: p.sx, sy: p.sy, blur: p.sblur, alpha: p.salpha,
+      color: type === "neon" ? val("ink") : "#000000"
+    });
+    state.active = state.layers.length - 1;
+    renderLayers(); loadLayerToSliders(); draw(); pushHist();
+  }
+  function loadLayerToSliders() {
+    const L = activeLayer(); if (!L) return;
     hist.lock = true;
-    $("sx").value=p.sx; $("sy").value=p.sy; $("sblur").value=p.sblur; $("salpha").value=p.salpha;
-    if (val("shadowPreset")==="neon") $("scolor").value = val("ink");
-    hist.lock = false;
-    draw(); pushHist();
+    $("sx").value = L.sx; $("sy").value = L.sy;
+    $("sblur").value = L.blur; $("salpha").value = L.alpha;
+    $("scolor").value = L.color; $("layerTarget").value = L.target;
+    hist.lock = false; syncUI();
+  }
+  function saveSlidersToLayer() {
+    const L = activeLayer(); if (!L || hist.lock) return;
+    L.sx = num("sx"); L.sy = num("sy"); L.blur = num("sblur");
+    L.alpha = num("salpha"); L.color = val("scolor"); L.target = val("layerTarget");
+  }
+  function renderLayers() {
+    const box = $("layerList"); if (!box) return;
+    box.innerHTML = state.layers.map((L, i) =>
+      `<div class="layer${i===state.active?" on-edit":""}" data-i="${i}">
+        <input type="checkbox" ${L.on?"checked":""} data-act="on">
+        <span>${NAMES[L.type]||L.type} · ${L.target==="content"?"nội dung":"khung"}</span>
+        <button type="button" data-act="del">✕</button>
+      </div>`
+    ).join("") || `<p class="note">Chưa có lớp. Thêm từ menu trên.</p>`;
+    box.querySelectorAll(".layer").forEach((row) => {
+      const i = +row.dataset.i;
+      row.addEventListener("click", (e) => {
+        if (e.target.dataset.act === "on") { state.layers[i].on = e.target.checked; draw(); pushHist(); return; }
+        if (e.target.dataset.act === "del") {
+          state.layers.splice(i,1);
+          state.active = Math.min(state.active, state.layers.length-1);
+          renderLayers(); loadLayerToSliders(); draw(); pushHist(); return;
+        }
+        state.active = i; renderLayers(); loadLayerToSliders();
+      });
+    });
   }
 
   function scaledBlob(px, flat) {
@@ -349,10 +416,14 @@
   }
   const CRC = new Uint32Array(256);
   for (let n=0;n<256;n++){ let c=n; for(let k=0;k<8;k++) c = c&1 ? 0xedb88320^(c>>>1) : c>>>1; CRC[n]=c>>>0; }
-
   function u16(n){ return new Uint8Array([n&255, n>>>8]); }
   function u32(n){ return new Uint8Array([n&255, (n>>>8)&255, (n>>>16)&255, n>>>24]); }
-
+  function concat(arrs) {
+    const len = arrs.reduce((a,b)=>a+b.length,0);
+    const out = new Uint8Array(len); let o=0;
+    arrs.forEach(a => { out.set(a,o); o+=a.length; });
+    return out;
+  }
   async function zipBlobs(files) {
     const parts = [], central = [];
     let offset = 0;
@@ -360,32 +431,13 @@
       const data = new Uint8Array(await f.blob.arrayBuffer());
       const name = new TextEncoder().encode(f.name);
       const crc = crc32(data);
-      const local = new Uint8Array([
-        0x50,0x4b,0x03,0x04, 20,0, 0,0, 0,0, 0,0,0,0,
-        ...u32(crc), ...u32(data.length), ...u32(data.length),
-        ...u16(name.length), 0,0
-      ]);
+      const local = new Uint8Array([0x50,0x4b,0x03,0x04,20,0,0,0,0,0,0,0,0,0,...u32(crc),...u32(data.length),...u32(data.length),...u16(name.length),0,0]);
       parts.push(local, name, data);
-      const cen = new Uint8Array([
-        0x50,0x4b,0x01,0x02, 20,0,20,0, 0,0,0,0, 0,0,0,0,
-        ...u32(crc), ...u32(data.length), ...u32(data.length),
-        ...u16(name.length), 0,0,0,0,0,0,0,0,0,0, ...u32(offset)
-      ]);
-      central.push(cen, name);
+      central.push(new Uint8Array([0x50,0x4b,0x01,0x02,20,0,20,0,0,0,0,0,0,0,0,0,...u32(crc),...u32(data.length),...u32(data.length),...u16(name.length),0,0,0,0,0,0,0,0,0,0,...u32(offset)]), name);
       offset += local.length + name.length + data.length;
     }
     const cenBuf = concat(central);
-    const end = new Uint8Array([
-      0x50,0x4b,0x05,0x06, 0,0,0,0, ...u16(files.length), ...u16(files.length),
-      ...u32(cenBuf.length), ...u32(offset), 0,0
-    ]);
-    return new Blob([concat(parts), cenBuf, end], { type: "application/zip" });
-  }
-  function concat(arrs) {
-    const len = arrs.reduce((a,b)=>a+b.length,0);
-    const out = new Uint8Array(len); let o=0;
-    arrs.forEach(a => { out.set(a,o); o+=a.length; });
-    return out;
+    return new Blob([concat(parts), cenBuf, new Uint8Array([0x50,0x4b,0x05,0x06,0,0,0,0,...u16(files.length),...u16(files.length),...u32(cenBuf.length),...u32(offset),0,0])], { type: "application/zip" });
   }
 
   function svgMarkup() {
@@ -408,23 +460,17 @@
     const a = document.createElement("a"); a.href = URL.createObjectURL(blob); a.download = name; a.click();
     setTimeout(() => URL.revokeObjectURL(a.href), 1500);
   }
-
   async function exportPng(px, share) {
     draw();
     const blob = await scaledBlob(px, on("opaque"));
     const name = px===SIZE ? "icon-home-screen.png" : `icon-${px}.png`;
     if (share) await shareOrDownload(name, blob);
-    else {
-      const a = document.createElement("a"); a.href = URL.createObjectURL(blob); a.download = name; a.click();
-      setTimeout(() => URL.revokeObjectURL(a.href), 1500);
-    }
+    else { const a = document.createElement("a"); a.href = URL.createObjectURL(blob); a.download = name; a.click(); setTimeout(() => URL.revokeObjectURL(a.href), 1500); }
   }
-
   async function exportZip() {
     draw();
-    const sizes = [1024,180,167,152,120];
     const files = [];
-    for (const s of sizes) files.push({ name: s===1024 ? "icon-home-screen.png" : `icon-${s}.png`, blob: await scaledBlob(s, on("opaque")) });
+    for (const s of [1024,180,167,152,120]) files.push({ name: s===1024 ? "icon-home-screen.png" : `icon-${s}.png`, blob: await scaledBlob(s, on("opaque")) });
     files.push({ name: "icon-home-screen.svg", blob: new Blob([svgMarkup()], { type:"image/svg+xml" }) });
     await shareOrDownload("icon-ios-pack.zip", await zipBlobs(files));
   }
@@ -447,7 +493,6 @@
   }
 
   const TITLES = { bg:"Nền", radius:"Bo góc", glass:"Kính & viền", shadow:"Đổ bóng", mark:"Ký hiệu & chữ", media:"Ảnh & SVG", home:"Màn hình chính", export:"Xuất file" };
-
   function openPane(id) {
     sheet.hidden = false;
     $("sheetTitle").textContent = TITLES[id] || id;
@@ -463,8 +508,9 @@
     document.querySelectorAll("input,select").forEach((el) => {
       if (el.id === "file" || el.id === "fileCam") return;
       el.addEventListener("input", () => {
-        if (el.id === "shadowPreset") applyPreset();
-        else { draw(); pushHist(); }
+        if (el.id === "addLayer") { if (el.value) { addLayer(el.value); el.value = ""; } return; }
+        if (["sx","sy","sblur","salpha","scolor","layerTarget"].includes(el.id)) saveSlidersToLayer();
+        draw(); pushHist();
       });
     });
     document.querySelectorAll("input[type=range], input[type=color]").forEach((el) => {
@@ -476,12 +522,8 @@
       el.addEventListener("touchend", undim);
     });
     document.addEventListener("pointerup", () => sheet.classList.remove("ghost"));
-
     document.querySelectorAll(".rail button").forEach((b) => {
-      b.onclick = () => {
-        if (b.classList.contains("on") && !sheet.hidden) closeSheet();
-        else openPane(b.dataset.panel);
-      };
+      b.onclick = () => { if (b.classList.contains("on") && !sheet.hidden) closeSheet(); else openPane(b.dataset.panel); };
     });
     $("sheetClose").onclick = closeSheet;
     $("pick").onclick = () => $("file").click();
@@ -497,7 +539,6 @@
     $("shareZip").onclick = exportZip;
     $("shareSvg").onclick = () => shareOrDownload("icon-home-screen.svg", new Blob([svgMarkup()], { type:"image/svg+xml" }));
     $("dl1024").onclick = () => exportPng(SIZE, false);
-
     c.addEventListener("pointerdown", (e) => {
       if (val("mark")!=="photo" && val("mark")!=="svg" && val("mark")!=="text") return;
       c.setPointerCapture(e.pointerId);
@@ -527,20 +568,13 @@
         draw();
       }
     }, { passive:false });
-
-    const stage = $("stage");
-    stage.addEventListener("dragover", (e) => e.preventDefault());
-    stage.addEventListener("drop", (e) => { e.preventDefault(); loadFile(e.dataTransfer.files[0]); });
-    document.addEventListener("paste", (e) => {
-      const f = [...(e.clipboardData?.files||[])][0]; if (f) loadFile(f);
-    });
+    $("stage").addEventListener("dragover", (e) => e.preventDefault());
+    $("stage").addEventListener("drop", (e) => { e.preventDefault(); loadFile(e.dataTransfer.files[0]); });
+    document.addEventListener("paste", (e) => { const f = [...(e.clipboardData?.files||[])][0]; if (f) loadFile(f); });
   }
 
-  try {
-    const saved = localStorage.getItem(KEY);
-    if (saved) writeForm(JSON.parse(saved));
-  } catch {}
-
+  try { const saved = localStorage.getItem(KEY); if (saved) writeForm(JSON.parse(saved)); } catch {}
+  renderLayers();
   bind();
   draw();
   pushHist();
