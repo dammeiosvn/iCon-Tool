@@ -479,7 +479,8 @@
 
   function syncUI() {
     const map = { noise:"noiseVal", ang:"angVal", radius:"radiusVal", glass:"glassVal", stroke:"strokeVal", pad:"padVal", sx:"sxVal", sy:"syVal", sblur:"sblurVal", salpha:"salphaVal", size:"sizeVal", size2:"size2Val", gap2:"gap2Val", alpha:"alphaVal", zoom:"zoomVal", px:"pxVal", py:"pyVal", rot:"rotVal", inkAng:"inkAngVal" };
-    Object.entries(map).forEach(([id, lab]) => { if ($(lab)) $(lab).textContent = $(id).value; });
+    const units = { ang:"°", inkAng:"°", rot:"°", alpha:"%", zoom:"%" };
+    Object.entries(map).forEach(([id, lab]) => { if ($(lab)) $(lab).textContent = $(id).value + (units[id] || ""); });
     $("mockName").textContent = val("label") || "Icon";
     $("mock").className = "mock" + (on("mockOn") ? ` wall-${val("wall")}` : " off");
     if (val("wall")==="ios" && on("mockOn")) $("mock").className = "mock wall-ios";
@@ -728,13 +729,25 @@
 
   const TITLES = { bg:"Nền", radius:"Bo góc", glass:"Kính & viền", shadow:"Đổ bóng", mark:"Ký hiệu & chữ", media:"Ảnh & SVG", home:"Màn hình chính", export:"Xuất file" };
 
+  function placeSheet() {
+    const mock = $("mock");
+    if (!mock) return;
+    const edge = mock.getBoundingClientRect().bottom;
+    sheet.style.top = Math.ceil(edge) + "px";
+    const vv = window.visualViewport;
+    if (vv) {
+      const inset = Math.max(0, window.innerHeight - (vv.offsetTop + vv.height));
+      sheet.style.bottom = Math.max(8, inset + 8) + "px";
+    }
+  }
   function openPane(id) {
     $("sheetTitle").textContent = TITLES[id] || id;
     document.querySelectorAll(".pane").forEach((p) => p.classList.toggle("on", p.dataset.pane === id));
     document.querySelectorAll(".rail button").forEach((b) => b.classList.toggle("on", b.dataset.panel === id));
     sheet.hidden = false;
     sheet.classList.remove("ghost");
-    requestAnimationFrame(() => sheet.classList.add("open"));
+    placeSheet();
+    requestAnimationFrame(() => { placeSheet(); sheet.classList.add("open"); });
   }
   function closeSheet() {
     sheet.classList.remove("open", "ghost");
@@ -764,6 +777,9 @@
       el.addEventListener("touchend", undim);
     });
     document.addEventListener("pointerup", () => sheet.classList.remove("ghost"));
+    window.addEventListener("resize", placeSheet);
+    window.addEventListener("orientationchange", placeSheet);
+    if (window.visualViewport) window.visualViewport.addEventListener("resize", placeSheet);
 
     document.querySelectorAll(".rail button").forEach((b) => {
       b.onclick = () => {
@@ -779,6 +795,9 @@
     $("center").onclick = () => { $("px").value=50; $("py").value=50; $("rot").value=0; draw(); pushHist(); };
     $("autoInk").onclick = () => { $("ink").value = lum(val("c1")) > .45 ? "#111111" : "#ffffff"; draw(); pushHist(); };
     $("symQ").addEventListener("input", renderSymbols);
+    const fontEl = $("font");
+    const paintFont = () => { if (fontEl) fontEl.style.fontFamily = fontEl.value; };
+    if (fontEl) { paintFont(); fontEl.addEventListener("change", paintFont); }
     $("undo").onclick = undo; $("redo").onclick = redo;
     $("reset").onclick = () => {
       try { localStorage.removeItem(KEY); } catch {}

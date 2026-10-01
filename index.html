@@ -13,9 +13,8 @@
   <title>Tạo Biểu Tượng IOS</title>
   <link rel="manifest" href="manifest.webmanifest">
   <link rel="apple-touch-icon" href="icon-home-screen.png" sizes="180x180">
-  <link rel="apple-touch-icon" href="icon-home-screen.png" sizes="1024x1024">
   <link rel="icon" type="image/png" href="icon-home-screen.png">
-  <link rel="stylesheet" href="CSS/style.css?v=15">
+  <link rel="stylesheet" href="css/style.css?v=16">
 </head>
 <body>
   <header class="top">
@@ -72,10 +71,10 @@
           <label class="swatch"><input id="c2" type="color" value="#3dcc6e"><span>Màu 2</span></label>
           <label class="swatch"><input id="c3" type="color" value="#e8fff4"><span>Màu 3</span></label>
         </div>
-        <label class="slide"><span>Góc gradient <em id="angVal">45</em>°</span>
+        <label class="slide"><span>Góc gradient</span><em id="angVal">45°</em>
           <input id="ang" type="range" min="0" max="360" value="45">
         </label>
-        <label class="slide"><span>Noise <em id="noiseVal">6</em></span>
+        <label class="slide"><span>Noise</span><em id="noiseVal">6</em>
           <input id="noise" type="range" min="0" max="40" value="6">
         </label>
         <div class="row">
@@ -92,7 +91,7 @@
       </div>
 
       <div class="pane" data-pane="radius">
-        <label class="slide"><span>Bo góc <em id="radiusVal">0</em></span>
+        <label class="slide"><span>Bo góc</span><em id="radiusVal">0</em>
           <input id="radius" type="range" min="0" max="512" value="0">
         </label>
         <label class="check"><input id="squircle" type="checkbox"><span>Squircle iOS</span></label>
@@ -100,13 +99,13 @@
       </div>
 
       <div class="pane" data-pane="glass">
-        <label class="slide"><span>Kính trong <em id="glassVal">0</em></span>
+        <label class="slide"><span>Kính trong</span><em id="glassVal">0</em>
           <input id="glass" type="range" min="0" max="80" value="0">
         </label>
-        <label class="slide"><span>Viền sáng <em id="strokeVal">0</em></span>
+        <label class="slide"><span>Viền sáng</span><em id="strokeVal">0</em>
           <input id="stroke" type="range" min="0" max="32" value="0">
         </label>
-        <label class="slide"><span>Lề nội dung <em id="padVal">48</em></span>
+        <label class="slide"><span>Lề nội dung</span><em id="padVal">48</em>
           <input id="pad" type="range" min="0" max="280" value="48">
         </label>
       </div>
@@ -148,10 +147,10 @@
             <option value="content">Ảnh / SVG / chữ</option>
           </select>
         </label>
-        <label class="slide"><span>X <em id="sxVal">0</em></span><input id="sx" type="range" min="-60" max="60" value="0"></label>
-        <label class="slide"><span>Y <em id="syVal">18</em></span><input id="sy" type="range" min="-60" max="60" value="18"></label>
-        <label class="slide"><span>Làm mờ <em id="sblurVal">24</em></span><input id="sblur" type="range" min="0" max="80" value="24"></label>
-        <label class="slide"><span>Độ đậm <em id="salphaVal">40</em></span><input id="salpha" type="range" min="0" max="90" value="40"></label>
+        <label class="slide"><span>X</span><em id="sxVal">0</em><input id="sx" type="range" min="-60" max="60" value="0"></label>
+        <label class="slide"><span>Y</span><em id="syVal">18</em><input id="sy" type="range" min="-60" max="60" value="18"></label>
+        <label class="slide"><span>Làm mờ</span><em id="sblurVal">24</em><input id="sblur" type="range" min="0" max="80" value="24"></label>
+        <label class="slide"><span>Độ đậm</span><em id="salphaVal">40</em><input id="salpha" type="range" min="0" max="90" value="40"></label>
         <label class="swatch lone"><input id="scolor" type="color" value="#000000"><span>Màu bóng</span></label>
         <label class="check"><input id="bakeShadow" type="checkbox"><span>Thu nhỏ icon để chừa bóng khi xuất</span></label>
       </div>
@@ -164,12 +163,33 @@
         <label class="field"><span>Chữ</span>
           <input id="letters" maxlength="24" placeholder="Tên icon" value="S" autocomplete="off">
         </label>
-        <label class="field"><span>Font</span>
+        <label class="field"><span>Font hệ thống</span>
           <select id="font">
-            <option value="system-ui, -apple-system, sans-serif">SF / System</option>
-            <option value="Georgia, serif">Georgia</option>
-            <option value="'Courier New', monospace">Courier New</option>
-            <option value="'Arial Black', sans-serif">Arial Black</option>
+            <option value="-apple-system, BlinkMacSystemFont, system-ui, sans-serif" style="font-family:-apple-system,system-ui,sans-serif">SF Pro</option>
+            <option value="ui-rounded, -apple-system, sans-serif" style="font-family:ui-rounded,sans-serif">SF Pro Rounded</option>
+            <option value="ui-serif, 'New York', Georgia, serif" style="font-family:ui-serif,Georgia,serif">New York</option>
+            <option value="ui-monospace, 'SF Mono', Menlo, monospace" style="font-family:ui-monospace,Menlo,monospace">SF Mono</option>
+            <option value="'Helvetica Neue', Helvetica, Arial, sans-serif" style="font-family:'Helvetica Neue',Helvetica,sans-serif">Helvetica Neue</option>
+            <option value="Avenir Next, Avenir, sans-serif" style="font-family:Avenir Next,Avenir,sans-serif">Avenir Next</option>
+            <option value="Avenir, sans-serif" style="font-family:Avenir,sans-serif">Avenir</option>
+            <option value="Futura, sans-serif" style="font-family:Futura,sans-serif">Futura</option>
+            <option value="'Gill Sans', sans-serif" style="font-family:'Gill Sans',sans-serif">Gill Sans</option>
+            <option value="Optima, sans-serif" style="font-family:Optima,sans-serif">Optima</option>
+            <option value="Baskerville, serif" style="font-family:Baskerville,serif">Baskerville</option>
+            <option value="Didot, serif" style="font-family:Didot,serif">Didot</option>
+            <option value="Palatino, 'Palatino Linotype', serif" style="font-family:Palatino,serif">Palatino</option>
+            <option value="Georgia, serif" style="font-family:Georgia,serif">Georgia</option>
+            <option value="'Times New Roman', Times, serif" style="font-family:'Times New Roman',serif">Times New Roman</option>
+            <option value="'American Typewriter', serif" style="font-family:'American Typewriter',serif">American Typewriter</option>
+            <option value="Copperplate, serif" style="font-family:Copperplate,serif">Copperplate</option>
+            <option value="'Courier New', Courier, monospace" style="font-family:'Courier New',monospace">Courier New</option>
+            <option value="Menlo, monospace" style="font-family:Menlo,monospace">Menlo</option>
+            <option value="'Arial Black', sans-serif" style="font-family:'Arial Black',sans-serif">Arial Black</option>
+            <option value="Impact, sans-serif" style="font-family:Impact,sans-serif">Impact</option>
+            <option value="'Marker Felt', sans-serif" style="font-family:'Marker Felt',sans-serif">Marker Felt</option>
+            <option value="'Chalkboard SE', sans-serif" style="font-family:'Chalkboard SE',sans-serif">Chalkboard SE</option>
+            <option value="'Snell Roundhand', cursive" style="font-family:'Snell Roundhand',cursive">Snell Roundhand</option>
+            <option value="'Bradley Hand', cursive" style="font-family:'Bradley Hand',cursive">Bradley Hand</option>
           </select>
         </label>
         <label class="field"><span>Màu chữ / SVG</span>
@@ -182,22 +202,22 @@
           <label class="swatch"><input id="ink" type="color" value="#5ac8fa"><span>Màu A</span></label>
           <label class="swatch"><input id="ink2" type="color" value="#007aff"><span>Màu B</span></label>
         </div>
-        <label class="slide"><span>Góc màu <em id="inkAngVal">90</em>°</span>
+        <label class="slide"><span>Góc màu</span><em id="inkAngVal">90°</em>
           <input id="inkAng" type="range" min="0" max="360" value="90">
         </label>
-        <label class="slide"><span>Cỡ <em id="sizeVal">220</em></span>
+        <label class="slide"><span>Cỡ</span><em id="sizeVal">220</em>
           <input id="size" type="range" min="12" max="900" value="220">
         </label>
-        <label class="slide"><span>Mờ <em id="alphaVal">100</em>%</span>
+        <label class="slide"><span>Mờ</span><em id="alphaVal">100%</em>
           <input id="alpha" type="range" min="10" max="100" value="100">
         </label>
         <label class="field"><span>Dòng 2</span>
           <input id="letters2" maxlength="24" placeholder="Phụ đề" value="" autocomplete="off">
         </label>
-        <label class="slide"><span>Cỡ dòng 2 <em id="size2Val">96</em></span>
+        <label class="slide"><span>Cỡ dòng 2</span><em id="size2Val">96</em>
           <input id="size2" type="range" min="0" max="400" value="96">
         </label>
-        <label class="slide"><span>Giãn dòng <em id="gap2Val">8</em></span>
+        <label class="slide"><span>Giãn dòng</span><em id="gap2Val">8</em>
           <input id="gap2" type="range" min="-40" max="80" value="8">
         </label>
         <label class="check"><input id="snap" type="checkbox" checked><span>Snap tâm khi kéo</span></label>
@@ -220,16 +240,16 @@
       <div class="pane" data-pane="media">
         <button class="file" id="pick" type="button">Chọn ảnh / SVG</button>
         <button class="file" id="cam" type="button">Chụp ảnh</button>
-        <label class="slide"><span>Phóng <em id="zoomVal">100</em>%</span>
+        <label class="slide"><span>Phóng</span><em id="zoomVal">100%</em>
           <input id="zoom" type="range" min="20" max="400" value="100">
         </label>
-        <label class="slide"><span>Ngang <em id="pxVal">50</em></span>
+        <label class="slide"><span>Ngang</span><em id="pxVal">50</em>
           <input id="px" type="range" min="-20" max="120" value="50">
         </label>
-        <label class="slide"><span>Dọc <em id="pyVal">50</em></span>
+        <label class="slide"><span>Dọc</span><em id="pyVal">50</em>
           <input id="py" type="range" min="-20" max="120" value="50">
         </label>
-        <label class="slide"><span>Xoay <em id="rotVal">0</em>°</span>
+        <label class="slide"><span>Xoay</span><em id="rotVal">0°</em>
           <input id="rot" type="range" min="-180" max="180" value="0">
         </label>
         <div class="row">

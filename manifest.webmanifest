@@ -2,8 +2,8 @@
   "name": "Tạo Biểu Tượng IOS",
   "short_name": "Biểu Tượng",
   "description": "Tạo biểu tượng phím tắt và webclip cho iOS",
-  "start_url": "./",
-  "scope": "./",
+  "start_url": "/iCon-Tool/",
+  "scope": "/iCon-Tool/",
   "display": "standalone",
   "orientation": "portrait",
   "lang": "vi",
@@ -11,17 +11,7 @@
   "background_color": "#101214",
   "theme_color": "#101214",
   "icons": [
-    {
-      "src": "icon-home-screen.png",
-      "sizes": "1024x1024",
-      "type": "image/png",
-      "purpose": "any"
-    },
-    {
-      "src": "icon-home-screen.png",
-      "sizes": "180x180",
-      "type": "image/png",
-      "purpose": "any maskable"
-    }
+    { "src": "icon-home-screen.png", "sizes": "180x180", "type": "image/png", "purpose": "any" },
+    { "src": "icon-home-screen.png", "sizes": "1024x1024", "type": "image/png", "purpose": "any maskable" }
   ]
 }

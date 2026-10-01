@@ -217,13 +217,13 @@ body {
 .sheet {
   position: fixed;
   left: 10px;
-  right: calc(10px + var(--rail) + 6px + var(--safe-r));
-  bottom: calc(4px + var(--safe-b));
-  max-height: 46vh;
-  background: color-mix(in srgb, var(--card) 92%, transparent);
-  -webkit-backdrop-filter: blur(22px) saturate(160%);
-  backdrop-filter: blur(22px) saturate(160%);
-  border: 1px solid var(--line);
+  right: calc(10px + var(--rail) + 8px + var(--safe-r));
+  top: 46vh;
+  bottom: calc(8px + var(--safe-b));
+  background: color-mix(in srgb, var(--card) 50%, transparent);
+  -webkit-backdrop-filter: blur(18px) saturate(140%);
+  backdrop-filter: blur(18px) saturate(140%);
+  border: 1px solid color-mix(in srgb, var(--line) 70%, transparent);
   border-radius: 22px;
   z-index: 60;
   display: flex;
@@ -242,8 +242,7 @@ body {
   pointer-events: auto;
 }
 .sheet.ghost {
-  opacity: .14;
-  transition: opacity .1s linear;
+  opacity: 1;
 }
 .sheet[hidden] { display: none; }
 
@@ -271,10 +270,29 @@ body {
 .pane { display: none; }
 .pane.on { display: grid; gap: 12px; }
 
-.field, .slide, .swatch, .check { display: grid; gap: 7px; }
+.field, .swatch, .check { display: grid; gap: 7px; }
 .field > span, .slide > span, .swatch > span, .check span { font-size: 12px; color: var(--muted); }
-.slide > span { display: flex; justify-content: space-between; }
-.slide em { font-style: normal; color: var(--fg); font-weight: 700; }
+.slide {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  grid-template-areas: "name val" "range range";
+  align-items: center;
+  column-gap: 10px;
+  row-gap: 4px;
+}
+.slide > span { grid-area: name; }
+.slide > em {
+  grid-area: val;
+  justify-self: end;
+  font-style: normal;
+  color: var(--thumb);
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  min-width: 3.4em;
+  text-align: right;
+}
+.slide > input[type="range"] { grid-area: range; }
+#font, #font option { font-size: 16px; }
 
 input, select, button.file, button.go {
   width: 100%;
