@@ -216,21 +216,21 @@ body {
 
 .sheet {
   position: fixed;
-  left: 12px;
-  right: calc(12px + var(--rail) + 8px + var(--safe-r));
-  bottom: calc(12px + var(--safe-b));
-  max-height: 42vh;
+  left: 10px;
+  right: calc(10px + var(--rail) + 6px + var(--safe-r));
+  bottom: calc(4px + var(--safe-b));
+  max-height: 46vh;
   background: color-mix(in srgb, var(--card) 92%, transparent);
   -webkit-backdrop-filter: blur(22px) saturate(160%);
   backdrop-filter: blur(22px) saturate(160%);
   border: 1px solid var(--line);
   border-radius: 22px;
-  z-index: 30;
+  z-index: 60;
   display: flex;
   flex-direction: column;
   overflow: hidden;
   opacity: 0;
-  transform: translate3d(0, 22px, 0) scale(.98);
+  transform: translate3d(0, 16px, 0) scale(.98);
   pointer-events: none;
   transition:
     opacity .34s cubic-bezier(.22,1,.36,1),
