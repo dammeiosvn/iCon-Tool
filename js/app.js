@@ -712,6 +712,53 @@
     }
   }
 
+
+  function xmlEscape(s) {
+    return String(s).replace(/&/g, "&").replace(/</g, "<").replace(/>/g, ">").replace(/"/g, """);
+  }
+  function uuid() { return crypto.randomUUID().toUpperCase(); }
+  async function exportConfig() {
+    const name = ($("clipName").value || val("label") || "Icon").trim();
+    let url = ($("clipUrl").value || "").trim();
+    if (!/^https?:\/\//i.test(url)) { alert("URL phải bắt đầu bằng https://"); return; }
+    draw();
+    const blob = await scaledBlob(180, true);
+    const bytes = new Uint8Array(await blob.arrayBuffer());
+    let bin = "";
+    for (let i = 0; i < bytes.length; i++) bin += String.fromCharCode(bytes[i]);
+    const b64 = btoa(bin).replace(/(.{64})/g, "$1\n");
+    const id = uuid();
+    const clip = uuid();
+    const xml = `<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+  <key>PayloadContent</key>
+  <array>
+    <dict>
+      <key>FullScreen</key><true/>
+      <key>Icon</key><data>${b64}</data>
+      <key>IsRemovable</key><true/>
+      <key>Label</key><string>${xmlEscape(name)}</string>
+      <key>PayloadIdentifier</key><string>vn.sentechtips.webclip.${clip}</string>
+      <key>PayloadType</key><string>com.apple.webClip.management</string>
+      <key>PayloadUUID</key><string>${clip}</string>
+      <key>PayloadVersion</key><integer>1</integer>
+      <key>Precomposed</key><true/>
+      <key>URL</key><string>${xmlEscape(url)}</string>
+    </dict>
+  </array>
+  <key>PayloadDisplayName</key><string>${xmlEscape(name)}</string>
+  <key>PayloadIdentifier</key><string>vn.sentechtips.profile.${id}</string>
+  <key>PayloadRemovalDisallowed</key><false/>
+  <key>PayloadType</key><string>Configuration</string>
+  <key>PayloadUUID</key><string>${id}</string>
+  <key>PayloadVersion</key><integer>1</integer>
+</dict>
+</plist>`;
+    const file = new Blob([xml], { type: "application/x-apple-aspen-config" });
+    await shareOrDownload(`${fileSlug(name)}.mobileconfig`, file);
+  }
   async function exportZip() {
     draw();
     const sizes = [1024,180,167,152,120];
@@ -819,6 +866,12 @@
     $("share1024").onclick = () => exportPng(SIZE, true);
     $("share180").onclick = () => exportPng(180, true);
     $("shareZip").onclick = exportZip;
+    $("shareConfig").onclick = () => {
+      $("configBox").hidden = false;
+      if (!$("clipName").value) $("clipName").value = val("label") || "Icon";
+      if (!$("clipUrl").value) $("clipUrl").value = "https://";
+    };
+    $("saveConfig").onclick = exportConfig;
     $("shareSvg").onclick = () => shareOrDownload(`${slug()}.svg`, new Blob([svgMarkup()], { type:"image/svg+xml" }));
     $("dl1024").onclick = () => exportPng(SIZE, false);
     $("pickDrop").onclick = () => { state.drop = true; sheet.classList.add("ghost"); };

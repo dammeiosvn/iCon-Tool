@@ -311,6 +311,16 @@
         <button class="go alt" id="share180" type="button">Chia sẻ PNG 180</button>
         <button class="go alt" id="shareZip" type="button">Gói webclip ZIP</button>
         <button class="go alt" id="shareSvg" type="button">Chia sẻ SVG</button>
+        <button class="go alt" id="shareConfig" type="button">Xuất .mobileconfig</button>
+        <div id="configBox" hidden>
+          <label class="field"><span>Tên webclip</span>
+            <input id="clipName" maxlength="24" placeholder="Tên trên màn hình" autocomplete="off">
+          </label>
+          <label class="field"><span>URL webclip</span>
+            <input id="clipUrl" maxlength="200" placeholder="https://" inputmode="url" autocomplete="off">
+          </label>
+          <button class="go" id="saveConfig" type="button">Xuất hồ sơ</button>
+        </div>
         <button class="go ghost" id="dl1024" type="button">Tải PNG 1024</button>
         <div class="tip" id="tip" hidden>
           <p id="tipText"></p>
