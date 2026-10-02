@@ -622,23 +622,31 @@
   function u16(n){ return new Uint8Array([n&255, n>>>8]); }
   function u32(n){ return new Uint8Array([n&255, (n>>>8)&255, (n>>>16)&255, n>>>24]); }
 
+  function dosStamp(date) {
+    const d = date || new Date();
+    const time = (d.getHours()<<11) | (d.getMinutes()<<5) | (d.getSeconds()>>1);
+    const day = ((d.getFullYear()-1980)<<9) | ((d.getMonth()+1)<<5) | d.getDate();
+    return [time & 255, time>>>8, day & 255, day>>>8];
+  }
   async function zipBlobs(files) {
     const parts = [], central = [];
     let offset = 0;
+    const stamp = dosStamp(new Date());
     for (const f of files) {
       const data = new Uint8Array(await f.blob.arrayBuffer());
       const name = new TextEncoder().encode(f.name);
       const crc = crc32(data);
       const local = new Uint8Array([
-        0x50,0x4b,0x03,0x04, 20,0, 0,0, 0,0, 0,0,0,0,
+        0x50,0x4b,0x03,0x04, 20,0, 0,8, 0,0, ...stamp,
         ...u32(crc), ...u32(data.length), ...u32(data.length),
         ...u16(name.length), 0,0
       ]);
       parts.push(local, name, data);
       const cen = new Uint8Array([
-        0x50,0x4b,0x01,0x02, 20,0,20,0, 0,0,0,0, 0,0,0,0,
+        0x50,0x4b,0x01,0x02, 0x1e,3, 20,0, 0,8, 0,0, ...stamp,
         ...u32(crc), ...u32(data.length), ...u32(data.length),
-        ...u16(name.length), 0,0,0,0,0,0,0,0,0,0, ...u32(offset)
+        ...u16(name.length), 0,0,0,0, 0,0, 0,0, 0,0,0,0,
+        ...u32(offset)
       ]);
       central.push(cen, name);
       offset += local.length + name.length + data.length;
@@ -668,13 +676,18 @@
   }
 
   async function shareOrDownload(name, blob) {
-    const file = new File([blob], name, { type: blob.type || "application/octet-stream" });
+    const type = /\.zip$/i.test(name) ? "application/zip" : (blob.type || "application/octet-stream");
+    const file = new File([blob], name, { type });
     try {
       if (navigator.canShare && navigator.canShare({ files:[file] })) {
-        await navigator.share({ files:[file], title:"Icon iOS" }); return;
+        await navigator.share({ files:[file] });
+        return;
       }
     } catch (e) { if (e && e.name==="AbortError") return; }
-    const a = document.createElement("a"); a.href = URL.createObjectURL(blob); a.download = name; a.click();
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(file);
+    a.download = name;
+    a.click();
     setTimeout(() => URL.revokeObjectURL(a.href), 1500);
   }
 
