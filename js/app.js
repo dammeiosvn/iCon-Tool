@@ -719,6 +719,7 @@
   function uuid() { return crypto.randomUUID().toUpperCase(); }
   async function exportConfig() {
     const name = ($("clipName").value || val("label") || "Icon").trim();
+    const desc = ($("clipDesc").value || name).trim();
     let url = ($("clipUrl").value || "").trim();
     if (!/^https?:\/\//i.test(url)) { alert("URL phải bắt đầu bằng https://"); return; }
     draw();
@@ -726,34 +727,61 @@
     const bytes = new Uint8Array(await blob.arrayBuffer());
     let bin = "";
     for (let i = 0; i < bytes.length; i++) bin += String.fromCharCode(bytes[i]);
-    const b64 = btoa(bin).replace(/(.{64})/g, "$1\n");
+    const b64 = btoa(bin);
     const id = uuid();
     const clip = uuid();
+    const org = "Sentechtipsvn";
     const xml = `<?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
+  <key>PayloadDisplayName</key>
+  <string>${xmlEscape(name)}</string>
+  <key>PayloadDescription</key>
+  <string>${xmlEscape(desc)}</string>
+  <key>PayloadIdentifier</key>
+  <string>com.sentechtipsvn.${id}</string>
+  <key>PayloadOrganization</key>
+  <string>${org}</string>
+  <key>PayloadType</key>
+  <string>Configuration</string>
+  <key>PayloadUUID</key>
+  <string>${id}</string>
+  <key>PayloadVersion</key>
+  <integer>1</integer>
+  <key>PayloadRemovalDisallowed</key>
+  <false/>
   <key>PayloadContent</key>
   <array>
     <dict>
-      <key>FullScreen</key><true/>
-      <key>Icon</key><data>${b64}</data>
-      <key>IsRemovable</key><true/>
-      <key>Label</key><string>${xmlEscape(name)}</string>
-      <key>PayloadIdentifier</key><string>vn.sentechtips.webclip.${clip}</string>
-      <key>PayloadType</key><string>com.apple.webClip.management</string>
-      <key>PayloadUUID</key><string>${clip}</string>
-      <key>PayloadVersion</key><integer>1</integer>
-      <key>Precomposed</key><true/>
-      <key>URL</key><string>${xmlEscape(url)}</string>
+      <key>PayloadType</key>
+      <string>com.apple.webClip.managed</string>
+      <key>PayloadDisplayName</key>
+      <string>${xmlEscape(name)}</string>
+      <key>PayloadDescription</key>
+      <string>${xmlEscape(desc)}</string>
+      <key>PayloadOrganization</key>
+      <string>${org}</string>
+      <key>PayloadIdentifier</key>
+      <string>com.sentechtipsvn.webclip.${clip}</string>
+      <key>PayloadUUID</key>
+      <string>${clip}</string>
+      <key>PayloadVersion</key>
+      <integer>1</integer>
+      <key>Label</key>
+      <string>${xmlEscape(name)}</string>
+      <key>URL</key>
+      <string>${xmlEscape(url)}</string>
+      <key>Icon</key>
+      <data>${b64}</data>
+      <key>IsRemovable</key>
+      <true/>
+      <key>FullScreen</key>
+      <true/>
+      <key>Precomposed</key>
+      <true/>
     </dict>
   </array>
-  <key>PayloadDisplayName</key><string>${xmlEscape(name)}</string>
-  <key>PayloadIdentifier</key><string>vn.sentechtips.profile.${id}</string>
-  <key>PayloadRemovalDisallowed</key><false/>
-  <key>PayloadType</key><string>Configuration</string>
-  <key>PayloadUUID</key><string>${id}</string>
-  <key>PayloadVersion</key><integer>1</integer>
 </dict>
 </plist>`;
     const file = new Blob([xml], { type: "application/x-apple-aspen-config" });
