@@ -721,7 +721,7 @@
     const name = ($("clipName").value || val("label") || "Icon").trim();
     const desc = ($("clipDesc").value || name).trim();
     let url = ($("clipUrl").value || "").trim();
-    if (!/^https?:\/\//i.test(url)) { alert("URL phải bắt đầu bằng https://"); return; }
+    if (!/^[a-z][a-z0-9+.-]*:/i.test(url)) { alert("URL cần có scheme, ví dụ https://, shortcuts://, zalo://"); return; }
     draw();
     const blob = await scaledBlob(180, true);
     const bytes = new Uint8Array(await blob.arrayBuffer());
@@ -786,6 +786,53 @@
 </plist>`;
     const file = new Blob([xml], { type: "application/x-apple-aspen-config" });
     await shareOrDownload(`${fileSlug(name)}.mobileconfig`, file);
+  }
+
+  const RUNS = "icontool-runs";
+  function loadRuns() { try { return JSON.parse(localStorage.getItem(RUNS) || "[]"); } catch { return []; } }
+  function fillRuns() {
+    const box = $("runSaved"); if (!box) return;
+    const cur = box.value;
+    box.replaceChildren();
+    const first = document.createElement("option");
+    first.value = ""; first.textContent = "Chọn tên đã lưu";
+    box.appendChild(first);
+    loadRuns().forEach((x) => {
+      const o = document.createElement("option");
+      o.value = x.name; o.textContent = x.name;
+      box.appendChild(o);
+    });
+    box.value = cur;
+  }
+  async function iconB64(px) {
+    draw();
+    const blob = await scaledBlob(Math.max(16, Math.min(180, px || 60)), true);
+    const bytes = new Uint8Array(await blob.arrayBuffer());
+    let bin = "";
+    for (let i = 0; i < bytes.length; i++) bin += String.fromCharCode(bytes[i]);
+    return btoa(bin);
+  }
+  async function saveRunName() {
+    const name = ($("runName").value || val("scName") || val("label") || "").trim();
+    if (!name) { alert("Nhập tên phím tắt"); return; }
+    const size = +$("runSize").value || 60;
+    const icon = await iconB64(size);
+    const list = loadRuns().filter((x) => x.name !== name);
+    list.unshift({ name, size, icon });
+    localStorage.setItem(RUNS, JSON.stringify(list.slice(0, 24)));
+    fillRuns();
+    $("runSaved").value = name;
+  }
+  async function runShortcut() {
+    const name = ($("runName").value || $("runSaved").value || val("scName") || "").trim();
+    if (!name) { alert("Nhập tên phím tắt"); return; }
+    const size = +$("runSize").value || 60;
+    const icon = await iconB64(size);
+    const input = "data:image/png;base64," + icon;
+    try { await navigator.clipboard.writeText(input); } catch (e) {}
+    let url = "shortcuts://run-shortcut?name=" + encodeURIComponent(name);
+    if (input.length < 1800) url += "&input=text&text=" + encodeURIComponent(input);
+    location.href = url;
   }
   async function exportZip() {
     draw();
@@ -900,6 +947,15 @@
       if (!$("clipUrl").value) $("clipUrl").value = "https://";
     };
     $("saveConfig").onclick = exportConfig;
+    $("saveRun").onclick = saveRunName;
+    $("runShortcut").onclick = runShortcut;
+    $("runSaved").onchange = () => {
+      const hit = loadRuns().find((x) => x.name === $("runSaved").value);
+      if (!hit) return;
+      $("runName").value = hit.name;
+      if (hit.size) $("runSize").value = hit.size;
+    };
+    fillRuns();
     $("shareSvg").onclick = () => shareOrDownload(`${slug()}.svg`, new Blob([svgMarkup()], { type:"image/svg+xml" }));
     $("dl1024").onclick = () => exportPng(SIZE, false);
     $("pickDrop").onclick = () => { state.drop = true; sheet.classList.add("ghost"); };
@@ -1072,11 +1128,8 @@
     const tip = $("tip"); if (!tip) return;
     const name = val("scName") || val("label") || "Icon";
     const url = "shortcuts://run-shortcut?name=" + encodeURIComponent(name);
-    $("tipText").textContent = "Lưu ảnh xong → mở Shortcuts «" + name + "» → chọn ảnh vừa lưu.";
-    $("tipLink").href = url;
-    const qr = $("tipQr");
-    qr.src = "https://api.qrserver.com/v1/create-qr-code/?size=160x160&data=" + encodeURIComponent(url);
-    qr.hidden = false;
+    $("tipText").textContent = "Đã lưu ảnh. Bấm Chạy phím tắt để gửi icon base64.";
+    if (!$("runName").value) $("runName").value = name;
     tip.hidden = false;
   }
   function kitCount() { return Math.max(6, Math.min(12, num("kitN") || 8)); }
