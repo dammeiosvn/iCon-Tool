@@ -347,33 +347,46 @@
   function edgePaint(ctx, w, h) {
     const mode = val("edgeMode") || "1";
     const c1 = val("edge1") || "#ffffff";
-    if (mode === "1") return c1;
+    const c2 = val("edge2") || c1;
+    const c3 = val("edge3") || c2;
+    if (mode === "1" || !ctx.createConicGradient) return c1;
     const ang = ((num("edgeAng") || 0) * Math.PI) / 180;
-    const cx = w / 2, cy = h / 2, L = Math.hypot(w, h) / 2;
-    const gr = ctx.createLinearGradient(cx - Math.cos(ang) * L, cy - Math.sin(ang) * L, cx + Math.cos(ang) * L, cy + Math.sin(ang) * L);
-    gr.addColorStop(0, c1);
-    if (mode === "3") gr.addColorStop(0.5, val("edge3") || c1);
-    gr.addColorStop(1, val("edge2") || c1);
+    const gr = ctx.createConicGradient(ang, w / 2, h / 2);
+    if (mode === "3") {
+      gr.addColorStop(0, c1);
+      gr.addColorStop(0.33, c3);
+      gr.addColorStop(0.66, c2);
+      gr.addColorStop(1, c1);
+    } else {
+      gr.addColorStop(0, c1);
+      gr.addColorStop(0.5, c2);
+      gr.addColorStop(1, c1);
+    }
     return gr;
   }
   function strokeSubject(g, img, x, y, w, h) {
     const edge = num("edge");
     if (!(edge > 0) || w < 2 || h < 2) { g.drawImage(img, x, y, w, h); return; }
-    const pad = Math.ceil(edge);
+    const pad = Math.ceil(edge) + 1;
     const c = document.createElement("canvas");
     c.width = Math.ceil(w + pad * 2); c.height = Math.ceil(h + pad * 2);
     const o = c.getContext("2d");
-    const steps = 20;
-    for (let i = 0; i < steps; i++) {
-      const a = i / steps * Math.PI * 2;
-      o.drawImage(img, pad + Math.cos(a) * edge, pad + Math.sin(a) * edge, w, h);
+    const steps = 32;
+    const rings = Math.max(2, Math.ceil(edge / 2));
+    for (let r = 1; r <= rings; r++) {
+      const rad = edge * (r / rings);
+      for (let i = 0; i < steps; i++) {
+        const a = i / steps * Math.PI * 2;
+        o.drawImage(img, pad + Math.cos(a) * rad, pad + Math.sin(a) * rad, w, h);
+      }
     }
     o.globalCompositeOperation = "source-in";
     o.fillStyle = edgePaint(o, c.width, c.height);
     o.fillRect(0, 0, c.width, c.height);
-    o.globalCompositeOperation = "source-over";
+    o.globalCompositeOperation = "destination-out";
     o.drawImage(img, pad, pad, w, h);
     g.drawImage(c, x - pad, y - pad);
+    g.drawImage(img, x, y, w, h);
   }
   function drawPhoto(g, box) {
     const img = state.photo; if (!img) return;
