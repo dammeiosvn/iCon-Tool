@@ -38,7 +38,7 @@
     clay: { sx: 0, sy: 8, sblur: 14, salpha: 40 },
   };
 
-  const FIELDS = ["bg","c1","c2","c3","ang","noise","radius","squircle","safeOn","glass","stroke","pad","sx","sy","sblur","salpha","scolor","layerTarget","bakeShadow","mark","letters","letters2","font","inkMode","ink","ink2","inkAng","size","size2","gap2","alpha","keepSvg","zoom","px","py","rot","flipH","flipV","snap","mockOn","label","wall","opaque","fileBase","dropTo","kitN","scName"];
+  const FIELDS = ["bg","c1","c2","c3","ang","noise","radius","squircle","safeOn","glass","stroke","pad","sx","sy","sblur","salpha","scolor","layerTarget","bakeShadow","mark","letters","letters2","font","inkMode","ink","ink2","inkAng","size","size2","gap2","alpha","keepSvg","edge","edgeMode","edge1","edge2","edge3","zoom","px","py","rot","flipH","flipV","snap","mockOn","label","wall","opaque","fileBase","dropTo","kitN","scName"];
   const LIB = "tao-icon-lib";
   const STY = "tao-icon-style";
 
@@ -344,6 +344,35 @@
     return gr;
   }
 
+  function edgePaint(ctx, w, h) {
+    const mode = val("edgeMode") || "1";
+    const c1 = val("edge1") || "#ffffff";
+    if (mode === "1") return c1;
+    const gr = ctx.createLinearGradient(0, 0, w, h);
+    gr.addColorStop(0, c1);
+    if (mode === "3") gr.addColorStop(0.5, val("edge3") || c1);
+    gr.addColorStop(1, val("edge2") || c1);
+    return gr;
+  }
+  function strokeSubject(g, img, x, y, w, h) {
+    const edge = num("edge");
+    if (!(edge > 0) || w < 2 || h < 2) { g.drawImage(img, x, y, w, h); return; }
+    const pad = Math.ceil(edge);
+    const c = document.createElement("canvas");
+    c.width = Math.ceil(w + pad * 2); c.height = Math.ceil(h + pad * 2);
+    const o = c.getContext("2d");
+    const steps = 20;
+    for (let i = 0; i < steps; i++) {
+      const a = i / steps * Math.PI * 2;
+      o.drawImage(img, pad + Math.cos(a) * edge, pad + Math.sin(a) * edge, w, h);
+    }
+    o.globalCompositeOperation = "source-in";
+    o.fillStyle = edgePaint(o, c.width, c.height);
+    o.fillRect(0, 0, c.width, c.height);
+    o.globalCompositeOperation = "source-over";
+    o.drawImage(img, pad, pad, w, h);
+    g.drawImage(c, x - pad, y - pad);
+  }
   function drawPhoto(g, box) {
     const img = state.photo; if (!img) return;
     const zoom = num("zoom")/100;
@@ -351,7 +380,7 @@
     let dw, dh;
     if (ir > br) { dh = box.h*zoom; dw = dh*ir; }
     else { dw = box.w*zoom; dh = dw/ir; }
-    applyContentShadows(g, (ctx) => ctx.drawImage(img, box.x+box.w/2-dw/2, box.y+box.h/2-dh/2, dw, dh));
+    applyContentShadows(g, (ctx) => strokeSubject(ctx, img, box.x+box.w/2-dw/2, box.y+box.h/2-dh/2, dw, dh));
   }
 
   function drawSvg(g, box) {
@@ -367,7 +396,7 @@
       o.fillStyle = inkPaint(o, { x:0, y:0, w:off.width, h:off.height });
       o.fillRect(0,0,off.width,off.height);
     }
-    applyContentShadows(g, (ctx) => ctx.drawImage(off, x, y, s, s));
+    applyContentShadows(g, (ctx) => strokeSubject(ctx, off, x, y, s, s));
   }
 
   function starPath(g, cx, cy, r) {
@@ -478,13 +507,16 @@
   }
 
   function syncUI() {
-    const map = { noise:"noiseVal", ang:"angVal", radius:"radiusVal", glass:"glassVal", stroke:"strokeVal", pad:"padVal", sx:"sxVal", sy:"syVal", sblur:"sblurVal", salpha:"salphaVal", size:"sizeVal", size2:"size2Val", gap2:"gap2Val", alpha:"alphaVal", zoom:"zoomVal", px:"pxVal", py:"pyVal", rot:"rotVal", inkAng:"inkAngVal" };
+    const map = { noise:"noiseVal", ang:"angVal", radius:"radiusVal", glass:"glassVal", stroke:"strokeVal", pad:"padVal", sx:"sxVal", sy:"syVal", sblur:"sblurVal", salpha:"salphaVal", size:"sizeVal", size2:"size2Val", gap2:"gap2Val", alpha:"alphaVal", zoom:"zoomVal", px:"pxVal", py:"pyVal", rot:"rotVal", inkAng:"inkAngVal", edge:"edgeVal" };
     const units = { ang:"°", inkAng:"°", rot:"°", alpha:"%", zoom:"%" };
     Object.entries(map).forEach(([id, lab]) => { if ($(lab)) $(lab).textContent = $(id).value + (units[id] || ""); });
     $("mockName").textContent = val("label") || "Icon";
     $("mock").className = "mock" + (on("mockOn") ? ` wall-${val("wall")}` : " off");
     if (val("wall")==="ios" && on("mockOn")) $("mock").className = "mock wall-ios";
     $("safe").hidden = !on("safeOn");
+    const mode = val("edgeMode") || "1";
+    if ($("edge2wrap")) $("edge2wrap").hidden = mode === "1";
+    if ($("edge3wrap")) $("edge3wrap").hidden = mode !== "3";
     const w = $("warn");
     const issues = [];
     if (val("bg") === "clear" && !on("opaque")) issues.push("PNG trong suốt — iOS dễ ra nền đen.");
