@@ -38,7 +38,7 @@
     clay: { sx: 0, sy: 8, sblur: 14, salpha: 40 },
   };
 
-  const FIELDS = ["bg","c1","c2","c3","ang","noise","radius","squircle","safeOn","glass","stroke","pad","sx","sy","sblur","salpha","scolor","layerTarget","bakeShadow","mark","letters","letters2","font","inkMode","ink","ink2","inkAng","size","size2","gap2","alpha","keepSvg","edge","edgeMode","edge1","edge2","edge3","zoom","px","py","rot","flipH","flipV","snap","mockOn","label","wall","opaque","fileBase","dropTo","kitN","scName"];
+  const FIELDS = ["bg","c1","c2","c3","ang","noise","radius","squircle","safeOn","glass","stroke","pad","sx","sy","sblur","salpha","scolor","layerTarget","bakeShadow","mark","letters","letters2","font","inkMode","ink","ink2","inkAng","size","size2","gap2","alpha","keepSvg","edge","edgeAng","edgeMode","edge1","edge2","edge3","zoom","px","py","rot","flipH","flipV","snap","mockOn","label","wall","opaque","fileBase","dropTo","kitN","scName"];
   const LIB = "tao-icon-lib";
   const STY = "tao-icon-style";
 
@@ -348,7 +348,9 @@
     const mode = val("edgeMode") || "1";
     const c1 = val("edge1") || "#ffffff";
     if (mode === "1") return c1;
-    const gr = ctx.createLinearGradient(0, 0, w, h);
+    const ang = ((num("edgeAng") || 0) * Math.PI) / 180;
+    const cx = w / 2, cy = h / 2, L = Math.hypot(w, h) / 2;
+    const gr = ctx.createLinearGradient(cx - Math.cos(ang) * L, cy - Math.sin(ang) * L, cx + Math.cos(ang) * L, cy + Math.sin(ang) * L);
     gr.addColorStop(0, c1);
     if (mode === "3") gr.addColorStop(0.5, val("edge3") || c1);
     gr.addColorStop(1, val("edge2") || c1);
@@ -507,8 +509,8 @@
   }
 
   function syncUI() {
-    const map = { noise:"noiseVal", ang:"angVal", radius:"radiusVal", glass:"glassVal", stroke:"strokeVal", pad:"padVal", sx:"sxVal", sy:"syVal", sblur:"sblurVal", salpha:"salphaVal", size:"sizeVal", size2:"size2Val", gap2:"gap2Val", alpha:"alphaVal", zoom:"zoomVal", px:"pxVal", py:"pyVal", rot:"rotVal", inkAng:"inkAngVal", edge:"edgeVal" };
-    const units = { ang:"°", inkAng:"°", rot:"°", alpha:"%", zoom:"%" };
+    const map = { noise:"noiseVal", ang:"angVal", radius:"radiusVal", glass:"glassVal", stroke:"strokeVal", pad:"padVal", sx:"sxVal", sy:"syVal", sblur:"sblurVal", salpha:"salphaVal", size:"sizeVal", size2:"size2Val", gap2:"gap2Val", alpha:"alphaVal", zoom:"zoomVal", px:"pxVal", py:"pyVal", rot:"rotVal", inkAng:"inkAngVal", edge:"edgeVal", edgeAng:"edgeAngVal" };
+    const units = { ang:"°", inkAng:"°", rot:"°", edgeAng:"°", alpha:"%", zoom:"%" };
     Object.entries(map).forEach(([id, lab]) => { if ($(lab)) $(lab).textContent = $(id).value + (units[id] || ""); });
     $("mockName").textContent = val("label") || "Icon";
     $("mock").className = "mock" + (on("mockOn") ? ` wall-${val("wall")}` : " off");
@@ -517,6 +519,7 @@
     const mode = val("edgeMode") || "1";
     if ($("edge2wrap")) $("edge2wrap").hidden = mode === "1";
     if ($("edge3wrap")) $("edge3wrap").hidden = mode !== "3";
+    if ($("edgeAngWrap")) $("edgeAngWrap").hidden = mode === "1";
     const w = $("warn");
     const issues = [];
     if (val("bg") === "clear" && !on("opaque")) issues.push("PNG trong suốt — iOS dễ ra nền đen.");

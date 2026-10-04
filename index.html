@@ -241,6 +241,7 @@
       <div class="pane" data-pane="media">
         <button class="file" id="pick" type="button">Chọn ảnh / SVG</button>
         <button class="file" id="cam" type="button">Chụp ảnh</button>
+        <button class="file" id="center" type="button">Căn giữa</button>
         <label class="slide"><span>Phóng</span><em id="zoomVal">100%</em>
           <input id="zoom" type="range" min="20" max="400" value="100">
         </label>
@@ -253,14 +254,11 @@
         <label class="slide"><span>Xoay</span><em id="rotVal">0°</em>
           <input id="rot" type="range" min="-180" max="180" value="0">
         </label>
-        <div class="row">
-          <label class="check"><input id="flipH" type="checkbox"><span>Lật ngang</span></label>
-          <label class="check"><input id="flipV" type="checkbox"><span>Lật dọc</span></label>
-        </div>
-        <button class="file" id="center" type="button">Căn giữa</button>
-        <label class="check"><input id="keepSvg" type="checkbox"><span>Giữ màu gốc SVG</span></label>
         <label class="slide"><span>Viền chủ thể</span><em id="edgeVal">0</em>
           <input id="edge" type="range" min="0" max="48" value="0">
+        </label>
+        <label class="slide" id="edgeAngWrap" hidden><span>Góc gradient</span><em id="edgeAngVal">45°</em>
+          <input id="edgeAng" type="range" min="0" max="360" value="45">
         </label>
         <label class="field"><span>Màu viền</span>
           <select id="edgeMode">
@@ -273,6 +271,11 @@
           <label class="swatch"><input id="edge1" type="color" value="#ffffff"><span>Màu 1</span></label>
           <label class="swatch" id="edge2wrap" hidden><input id="edge2" type="color" value="#5ac8fa"><span>Màu 2</span></label>
           <label class="swatch" id="edge3wrap" hidden><input id="edge3" type="color" value="#ff9f0a"><span>Màu 3</span></label>
+        </div>
+        <div class="ticks">
+          <label class="check"><span>Lật ngang</span><input id="flipH" type="checkbox"></label>
+          <label class="check"><span>Lật dọc</span><input id="flipV" type="checkbox"></label>
+          <label class="check"><span>Giữ màu gốc SVG</span><input id="keepSvg" type="checkbox"></label>
         </div>
       </div>
 
