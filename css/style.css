@@ -434,3 +434,11 @@ button.go.ghost { background: transparent; color: var(--muted); border: 1px dash
 .ticks .check { grid-template-columns: 1fr; justify-items: center; text-align: center; gap: 6px; }
 .ticks .check span { font-size: 12px; }
 .ticks .check input { width: 22px; height: 22px; }
+
+.pane input, .pane select, button.file, button.go.alt {
+  box-shadow: inset 0 0 15px rgba(0,0,0,.8);
+}
+button.go {
+  box-shadow: 0 0 15px rgba(0,0,0,.8);
+}
+button.go.alt { box-shadow: inset 0 0 15px rgba(0,0,0,.8); }

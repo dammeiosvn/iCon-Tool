@@ -38,7 +38,7 @@
     clay: { sx: 0, sy: 8, sblur: 14, salpha: 40 },
   };
 
-  const FIELDS = ["bg","c1","c2","c3","ang","noise","radius","squircle","safeOn","glass","stroke","pad","sx","sy","sblur","salpha","scolor","layerTarget","bakeShadow","mark","letters","letters2","font","inkMode","ink","ink2","inkAng","size","size2","gap2","alpha","keepSvg","edge","edgeAng","edgeMode","edge1","edge2","edge3","zoom","px","py","rot","flipH","flipV","snap","mockOn","label","wall","opaque","fileBase","dropTo","kitN","scName"];
+  const FIELDS = ["bg","c1","c2","c3","ang","noise","radius","squircle","safeOn","glass","stroke","pad","sx","sy","sblur","salpha","scolor","layerTarget","bakeShadow","mark","letters","letters2","font","inkMode","ink","ink2","inkAng","size","size2","gap2","alpha","keepSvg","edge","edgeAng","edgeMode","edge1","edge2","edge3","zoom","px","py","rot","flipH","flipV","snap","mockOn","label","wall","opaque","fileBase","dropTo","kitN"];
   const LIB = "tao-icon-lib";
   const STY = "tao-icon-style";
 
@@ -861,7 +861,7 @@
     return btoa(bin);
   }
   async function saveRunName() {
-    const name = ($("runName").value || val("scName") || val("label") || "").trim();
+    const name = ($("runName").value || val("label") || "").trim();
     if (!name) { alert("Nhập tên phím tắt"); return; }
     const size = +$("runSize").value || 60;
     const icon = await iconB64(size);
@@ -886,7 +886,7 @@
     return btoa(bin);
   }
   async function runShortcut() {
-    const name = ($("runName").value || $("runSaved").value || val("scName") || "").trim();
+    const name = ($("runName").value || $("runSaved").value || "").trim();
     if (!name) { alert("Nhập tên phím tắt"); return; }
     const text = await iconText(+$("runSize").value || 60);
     location.href = "shortcuts://x-callback-url/run-shortcut?name=" + encodeURIComponent(name) + "&input=text&text=" + encodeURIComponent(text);
@@ -1014,7 +1014,6 @@
     };
     fillRuns();
     $("shareSvg").onclick = () => shareOrDownload(`${slug()}.svg`, new Blob([svgMarkup()], { type:"image/svg+xml" }));
-    $("dl1024").onclick = () => exportPng(SIZE, false);
     $("pickDrop").onclick = () => { state.drop = true; sheet.classList.add("ghost"); };
     $("saveLib").onclick = saveLib;
     $("saveStyle").onclick = saveStyle;
@@ -1183,7 +1182,7 @@
   }
   function showTip() {
     const tip = $("tip"); if (!tip) return;
-    const name = val("scName") || val("label") || "Icon";
+    const name = val("label") || "Icon";
     const url = "shortcuts://run-shortcut?name=" + encodeURIComponent(name);
     $("tipText").textContent = "Đã lưu ảnh. Bấm Chạy phím tắt để gửi icon base64.";
     if (!$("runName").value) $("runName").value = name;

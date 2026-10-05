@@ -322,9 +322,19 @@
         <label class="field"><span>Tên file / tên MH</span>
           <input id="fileBase" maxlength="32" value="icon-home-screen" autocomplete="off">
         </label>
-        <label class="field"><span>Shortcut sau khi xuất</span>
-          <input id="scName" maxlength="40" placeholder="Tên phím tắt" value="" autocomplete="off">
-        </label>
+        <div class="runbox">
+          <label class="field"><span>Tên phím tắt</span>
+            <input id="runName" maxlength="40" placeholder="Tên phím tắt" autocomplete="off">
+          </label>
+          <label class="field"><span>Đã lưu</span>
+            <select id="runSaved"><option value="">Chọn tên đã lưu</option></select>
+          </label>
+          <label class="field"><span>Cỡ icon</span>
+            <input id="runSize" type="number" min="16" max="180" value="60" inputmode="numeric">
+          </label>
+          <button class="go" id="runShortcut" type="button">Chạy phím tắt</button>
+          <button class="go alt" id="saveRun" type="button">Lưu tên</button>
+        </div>
         <label class="check"><input id="opaque" type="checkbox" checked><span>PNG nền đặc</span></label>
         <button class="go" id="share1024" type="button">Chia sẻ PNG 1024</button>
         <button class="go alt" id="share180" type="button">Chia sẻ PNG 180</button>
@@ -343,23 +353,9 @@
           </label>
           <button class="go" id="saveConfig" type="button">Xuất hồ sơ</button>
         </div>
-        <button class="go ghost" id="dl1024" type="button">Tải PNG 1024</button>
         <div class="tip" id="tip" hidden>
           <p id="tipText"></p>
           <img id="tipQr" alt="" hidden>
-        </div>
-        <div class="runbox">
-          <label class="field"><span>Tên phím tắt</span>
-            <input id="runName" maxlength="40" placeholder="Tên phím tắt" autocomplete="off">
-          </label>
-          <label class="field"><span>Đã lưu</span>
-            <select id="runSaved"><option value="">Chọn tên đã lưu</option></select>
-          </label>
-          <label class="field"><span>Cỡ icon</span>
-            <input id="runSize" type="number" min="16" max="180" value="60" inputmode="numeric">
-          </label>
-          <button class="go" id="runShortcut" type="button">Chạy phím tắt</button>
-          <button class="go alt" id="saveRun" type="button">Lưu tên</button>
         </div>
       </div>
 
