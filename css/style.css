@@ -10,6 +10,7 @@
   --go: #2fbf6a;
   --thumb: #1c8f86;
   --check: #c8cdd2;
+  --edge: #D6D6D6;
   --rail: 44px;
   --safe-t: env(safe-area-inset-top);
   --safe-b: env(safe-area-inset-bottom);
@@ -29,6 +30,7 @@
     --go: #3dcc6e;
     --thumb: #3dcc6e;
     --check: #2a3036;
+    --edge: #474747;
   }
 }
 
@@ -436,10 +438,11 @@ button.go.ghost { background: transparent; color: var(--muted); border: 1px dash
 .ticks .check input { width: 22px; height: 22px; }
 
 .sheet {
-  border: 1px solid #D6D6D6;
+  border: 1px solid var(--edge);
 }
-.pane input, .pane select, button.file, button.go, button.go.alt {
-  border: 1px solid #D6D6D6;
+.pane input:not([type="color"]), .pane select, button.file, button.go, button.go.alt {
+  border: 1px solid var(--edge);
   box-shadow: none;
 }
+.pane input[type="color"] { border: 0; box-shadow: none; }
 .runbox { display: grid; gap: 12px; }
