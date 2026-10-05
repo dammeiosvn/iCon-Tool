@@ -1,4 +1,4 @@
-const CACHE = "tao-icon-v24";
+const CACHE = "tao-icon-v25";
 const ASSETS = ["./", "./index.html", "./css/style.css", "./js/app.js", "./manifest.webmanifest", "./icon-home-screen.png"];
 self.addEventListener("install", (e) => {
   e.waitUntil(caches.open(CACHE).then((c) => c.addAll(ASSETS)).then(() => self.skipWaiting()));

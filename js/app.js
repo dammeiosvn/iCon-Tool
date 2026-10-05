@@ -871,16 +871,25 @@
     fillRuns();
     $("runSaved").value = name;
   }
+  async function iconText(px) {
+    draw();
+    const size = Math.max(16, Math.min(180, px || 60));
+    const blob = await scaledBlob(size, true);
+    const img = await createImageBitmap(blob);
+    const cnv = document.createElement("canvas");
+    cnv.width = cnv.height = size;
+    cnv.getContext("2d").drawImage(img, 0, 0, size, size);
+    const jpg = await new Promise((ok) => cnv.toBlob(ok, "image/jpeg", 0.7));
+    const bytes = new Uint8Array(await jpg.arrayBuffer());
+    let bin = "";
+    for (let i = 0; i < bytes.length; i++) bin += String.fromCharCode(bytes[i]);
+    return btoa(bin);
+  }
   async function runShortcut() {
     const name = ($("runName").value || $("runSaved").value || val("scName") || "").trim();
     if (!name) { alert("Nhập tên phím tắt"); return; }
-    const size = +$("runSize").value || 60;
-    const icon = await iconB64(size);
-    const input = "data:image/png;base64," + icon;
-    try { await navigator.clipboard.writeText(input); } catch (e) {}
-    let url = "shortcuts://run-shortcut?name=" + encodeURIComponent(name);
-    if (input.length < 1800) url += "&input=text&text=" + encodeURIComponent(input);
-    location.href = url;
+    const text = await iconText(+$("runSize").value || 60);
+    location.href = "shortcuts://x-callback-url/run-shortcut?name=" + encodeURIComponent(name) + "&input=text&text=" + encodeURIComponent(text);
   }
   async function exportZip() {
     draw();
