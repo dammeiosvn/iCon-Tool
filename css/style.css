@@ -435,10 +435,11 @@ button.go.ghost { background: transparent; color: var(--muted); border: 1px dash
 .ticks .check span { font-size: 12px; }
 .ticks .check input { width: 22px; height: 22px; }
 
-.pane input, .pane select, button.file, button.go.alt {
-  box-shadow: inset 0 0 10px rgba(0,0,0,.5);
+.sheet {
+  border: 1px solid #D6D6D6;
 }
-button.go {
-  box-shadow: 0 0 10px rgba(0,0,0,.5);
+.pane input, .pane select, button.file, button.go, button.go.alt {
+  border: 1px solid #D6D6D6;
+  box-shadow: none;
 }
-button.go.alt { box-shadow: inset 0 0 10px rgba(0,0,0,.5); }
+.runbox { display: grid; gap: 12px; }
