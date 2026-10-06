@@ -6,7 +6,7 @@
   const $ = (id) => document.getElementById(id);
   const sheet = $("sheet");
 
-  const state = { photo: null, svgImg: null, drag: null, pinch: null, layers: [], active: -1, seq: 1, kit: [], kitSlot: -1, abPick: "a" };
+  const state = { photo: null, svgImg: null, drag: null, pinch: null, layers: [], stack: [], active: -1, seq: 1, kit: [], kitSlot: -1, abPick: "a" };
   const hist = { stack: [], i: -1, lock: false };
 
   const NAMES = {
@@ -423,7 +423,44 @@
     g.closePath();
   }
 
+  function drawStackItem(g, box, layer) {
+    if (!layer || layer.on === false) return;
+    g.save();
+    g.globalAlpha = (layer.alpha || 100) / 100;
+    if (layer.kind === "text") {
+      g.fillStyle = layer.ink || val("ink");
+      g.font = `700 ${layer.size || 220}px ${layer.font || val("font")}`;
+      g.textAlign = "center";
+      g.textBaseline = "middle";
+      g.fillText(layer.letters || "S", box.x + box.w / 2, box.y + box.h / 2);
+    } else if (layer.img) {
+      const zoom = (layer.zoom || 100) / 100;
+      const ir = layer.img.width / layer.img.height || 1, br = box.w / box.h;
+      let dw, dh;
+      if (ir > br) { dh = box.h * zoom; dw = dh * ir; }
+      else { dw = box.w * zoom; dh = dw / ir; }
+      g.drawImage(layer.img, box.x + box.w / 2 - dw / 2, box.y + box.h / 2 - dh / 2, dw, dh);
+    }
+    g.restore();
+  }
+  function renderStack() {
+    const box = $("stack"); if (!box) return;
+    box.innerHTML = state.stack.map((layer, i) =>
+      `<div class="layer"><span>${layer.kind === "text" ? "Chữ" : layer.kind === "svg" ? "SVG" : "Ảnh"} ${i + 1}</span><button type="button" data-i="${i}">✕</button></div>`
+    ).join("") || `<p class="note">Chưa có lớp ghép.</p>`;
+    box.querySelectorAll("button").forEach((b) => {
+      b.onclick = () => { state.stack.splice(+b.dataset.i, 1); renderStack(); draw(); };
+    });
+  }
+  function keepLayer(kind, img) {
+    state.stack.push({
+      kind, img: img || null, letters: val("letters"), font: val("font"),
+      size: num("size"), ink: val("ink"), zoom: num("zoom"), alpha: num("alpha"), on: true
+    });
+    renderStack();
+  }
   function drawMark(g, box) {
+    state.stack.forEach((layer) => drawStackItem(g, box, layer));
     const m = val("mark");
     if (m === "none") return;
     withContentXform(g, box, () => {
@@ -913,7 +950,7 @@
     const files = [];
     const base = slug();
     for (const s of sizes) files.push({ name: s===1024 ? `${base}.png` : `${base}-${s}.png`, blob: await scaledBlob(s, on("opaque")) });
-    files.push({ name: `${base}.svg`, blob: new Blob([svgMarkup()], { type:"image/svg+xml" }) });
+    files.push({ name: `${base}.svg`, blob: new Blob([await svgMarkup()], { type:"image/svg+xml" }) });
     await shareOrDownload(`${base}-ios.zip`, await zipBlobs(files));
     showTip();
   }
@@ -925,8 +962,13 @@
       const img = new Image();
       img.onload = () => {
         const isSvg = (file.type||"").includes("svg") || /\.svg$/i.test(file.name);
-        if (isSvg) { state.svgImg = img; $("mark").value = "svg"; }
-        else { state.photo = img; $("mark").value = "photo"; }
+        if (isSvg) {
+          if (state.svgImg) keepLayer("svg", state.svgImg);
+          state.svgImg = img; $("mark").value = "svg";
+        } else {
+          if (state.photo) keepLayer("photo", state.photo);
+          state.photo = img; $("mark").value = "photo";
+        }
         $("px").value = 50; $("py").value = 50; $("rot").value = 0;
         draw(); pushHist();
       };
@@ -1001,6 +1043,7 @@
     $("file").onchange = () => loadFile($("file").files[0]);
     $("fileCam").onchange = () => loadFile($("fileCam").files[0]);
     $("center").onclick = () => { $("px").value=50; $("py").value=50; $("rot").value=0; draw(); pushHist(); };
+    $("addText").onclick = () => { keepLayer("text"); draw(); pushHist(); };
     $("autoInk").onclick = () => { $("ink").value = lum(val("c1")) > .45 ? "#111111" : "#ffffff"; draw(); pushHist(); };
     $("symQ").addEventListener("input", renderSymbols);
     const fontEl = $("font");
@@ -1264,6 +1307,7 @@
   }
 
   renderLayers();
+  renderStack();
   renderSymbols();
   renderLib();
   renderKit();
