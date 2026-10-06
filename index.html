@@ -243,6 +243,28 @@
         <button class="file" id="cam" type="button">Chụp ảnh</button>
         <button class="file" id="addText" type="button">Thêm chữ</button>
         <div class="layers" id="stack"></div>
+        <div id="layerEdit" hidden>
+          <label class="field" id="lyTextWrap"><span>Chữ lớp</span>
+            <input id="lyText" maxlength="24" autocomplete="off">
+          </label>
+          <label class="slide"><span>Cỡ</span><em id="lySizeVal">220</em>
+            <input id="lySize" type="range" min="12" max="900" value="220">
+          </label>
+          <label class="slide"><span>Độ mờ</span><em id="lyAlphaVal">100%</em>
+            <input id="lyAlpha" type="range" min="0" max="100" value="100">
+          </label>
+          <div class="swatches">
+            <label class="swatch"><input id="lyInk" type="color" value="#5ac8fa"><span>Màu</span></label>
+            <label class="swatch"><input id="lyShadowColor" type="color" value="#000000"><span>Màu bóng</span></label>
+            <label class="swatch"><input id="lyStrokeColor" type="color" value="#ffffff"><span>Màu viền</span></label>
+          </div>
+          <label class="slide"><span>Bóng</span><em id="lyShadowVal">0</em>
+            <input id="lyShadow" type="range" min="0" max="48" value="0">
+          </label>
+          <label class="slide"><span>Viền</span><em id="lyStrokeVal">0</em>
+            <input id="lyStroke" type="range" min="0" max="32" value="0">
+          </label>
+        </div>
         <button class="file" id="center" type="button">Căn giữa</button>
         <label class="slide"><span>Phóng</span><em id="zoomVal">100%</em>
           <input id="zoom" type="range" min="20" max="400" value="100">

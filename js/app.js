@@ -6,7 +6,7 @@
   const $ = (id) => document.getElementById(id);
   const sheet = $("sheet");
 
-  const state = { photo: null, svgImg: null, drag: null, pinch: null, layers: [], stack: [], active: -1, seq: 1, kit: [], kitSlot: -1, abPick: "a" };
+  const state = { photo: null, svgImg: null, drag: null, pinch: null, layers: [], stack: [], pick: -1, active: -1, seq: 1, kit: [], kitSlot: -1, abPick: "a" };
   const hist = { stack: [], i: -1, lock: false };
 
   const NAMES = {
@@ -423,44 +423,122 @@
     g.closePath();
   }
 
+  function paintLayerSource(layer) {
+    const size = Math.max(16, layer.size || 220);
+    const cnv = document.createElement("canvas");
+    cnv.width = cnv.height = size;
+    const o = cnv.getContext("2d");
+    if (layer.kind === "text") {
+      o.fillStyle = layer.ink || "#111111";
+      o.font = `700 ${size * 0.72}px ${layer.font || "sans-serif"}`;
+      o.textAlign = "center";
+      o.textBaseline = "middle";
+      o.fillText(layer.letters || "S", size / 2, size / 2);
+    } else if (layer.img) {
+      o.drawImage(layer.img, 0, 0, size, size);
+      if (layer.kind === "svg" && !layer.keepSvg) {
+        o.globalCompositeOperation = "source-in";
+        o.fillStyle = layer.ink || "#111111";
+        o.fillRect(0, 0, size, size);
+      }
+    }
+    return cnv;
+  }
   function drawStackItem(g, box, layer) {
     if (!layer || layer.on === false) return;
+    const src = paintLayerSource(layer);
+    const size = layer.size || 220;
+    const cx = box.x + box.w * ((layer.px ?? 50) / 100);
+    const cy = box.y + box.h * ((layer.py ?? 50) / 100);
+    const x = cx - size / 2, y = cy - size / 2;
     g.save();
-    g.globalAlpha = (layer.alpha || 100) / 100;
-    if (layer.kind === "text") {
-      g.fillStyle = layer.ink || val("ink");
-      g.font = `700 ${layer.size || 220}px ${layer.font || val("font")}`;
-      g.textAlign = "center";
-      g.textBaseline = "middle";
-      g.fillText(layer.letters || "S", box.x + box.w / 2, box.y + box.h / 2);
-    } else if (layer.img) {
-      const zoom = (layer.zoom || 100) / 100;
-      const ir = layer.img.width / layer.img.height || 1, br = box.w / box.h;
-      let dw, dh;
-      if (ir > br) { dh = box.h * zoom; dw = dh * ir; }
-      else { dw = box.w * zoom; dh = dw / ir; }
-      g.drawImage(layer.img, box.x + box.w / 2 - dw / 2, box.y + box.h / 2 - dh / 2, dw, dh);
+    g.globalAlpha = (layer.alpha ?? 100) / 100;
+    g.shadowColor = layer.shadowColor || "#000000";
+    g.shadowBlur = layer.shadow || 0;
+    if (layer.stroke > 0) {
+      const steps = 16;
+      g.shadowBlur = 0;
+      for (let i = 0; i < steps; i++) {
+        const a = i / steps * Math.PI * 2;
+        g.drawImage(src, x + Math.cos(a) * layer.stroke, y + Math.sin(a) * layer.stroke, size, size);
+      }
+      g.globalCompositeOperation = "source-in";
+      g.fillStyle = layer.strokeColor || "#ffffff";
+      g.fillRect(box.x, box.y, box.w, box.h);
+      g.globalCompositeOperation = "source-over";
     }
+    g.shadowBlur = layer.shadow || 0;
+    g.drawImage(src, x, y, size, size);
     g.restore();
+  }
+  function selectedLayer() { return state.stack[state.pick] || null; }
+  function loadPick() {
+    const layer = selectedLayer();
+    const box = $("layerEdit");
+    if (box) box.hidden = !layer;
+    if (!layer) return;
+    $("lyTextWrap").hidden = layer.kind !== "text";
+    $("lyText").value = layer.letters || "";
+    $("lySize").value = layer.size || 220;
+    $("lyAlpha").value = layer.alpha ?? 100;
+    $("lyInk").value = layer.ink || "#5ac8fa";
+    $("lyShadow").value = layer.shadow || 0;
+    $("lyShadowColor").value = layer.shadowColor || "#000000";
+    $("lyStroke").value = layer.stroke || 0;
+    $("lyStrokeColor").value = layer.strokeColor || "#ffffff";
+    $("lySizeVal").textContent = $("lySize").value;
+    $("lyAlphaVal").textContent = $("lyAlpha").value + "%";
+    $("lyShadowVal").textContent = $("lyShadow").value;
+    $("lyStrokeVal").textContent = $("lyStroke").value;
+  }
+  function writePick() {
+    const layer = selectedLayer();
+    if (!layer) return;
+    layer.letters = $("lyText").value;
+    layer.size = +$("lySize").value;
+    layer.alpha = +$("lyAlpha").value;
+    layer.ink = $("lyInk").value;
+    layer.shadow = +$("lyShadow").value;
+    layer.shadowColor = $("lyShadowColor").value;
+    layer.stroke = +$("lyStroke").value;
+    layer.strokeColor = $("lyStrokeColor").value;
+    loadPick();
+    renderStack();
   }
   function renderStack() {
     const box = $("stack"); if (!box) return;
     box.innerHTML = state.stack.map((layer, i) =>
-      `<div class="layer"><span>${layer.kind === "text" ? "Chữ" : layer.kind === "svg" ? "SVG" : "Ảnh"} ${i + 1}</span><button type="button" data-i="${i}">✕</button></div>`
+      `<div class="layer${i === state.pick ? " on-edit" : ""}" data-i="${i}"><span>${layer.kind === "text" ? (layer.letters || "Chữ") : layer.kind === "svg" ? "SVG" : "Ảnh"}</span><button type="button" data-del="${i}">✕</button></div>`
     ).join("") || `<p class="note">Chưa có lớp ghép.</p>`;
-    box.querySelectorAll("button").forEach((b) => {
-      b.onclick = () => { state.stack.splice(+b.dataset.i, 1); renderStack(); draw(); };
+    box.querySelectorAll(".layer").forEach((row) => {
+      row.onclick = (e) => {
+        if (e.target.dataset.del) {
+          state.stack.splice(+e.target.dataset.del, 1);
+          state.pick = Math.min(state.pick, state.stack.length - 1);
+          renderStack(); loadPick(); draw();
+          return;
+        }
+        state.pick = +row.dataset.i;
+        renderStack(); loadPick();
+      };
     });
   }
   function keepLayer(kind, img) {
     state.stack.push({
-      kind, img: img || null, letters: val("letters"), font: val("font"),
-      size: num("size"), ink: val("ink"), zoom: num("zoom"), alpha: num("alpha"), on: true
+      kind, img: img || null, letters: val("letters") || "S", font: val("font"),
+      size: num("size") || 220, ink: val("ink"), zoom: num("zoom"), alpha: num("alpha") || 100,
+      shadow: 0, shadowColor: "#000000", stroke: 0, strokeColor: "#ffffff",
+      px: 50, py: 50, keepSvg: on("keepSvg"), on: true
     });
+    state.pick = state.stack.length - 1;
     renderStack();
+    loadPick();
   }
   function drawMark(g, box) {
-    state.stack.forEach((layer) => drawStackItem(g, box, layer));
+    if (state.stack.length) {
+      state.stack.forEach((layer) => drawStackItem(g, box, layer));
+      return;
+    }
     const m = val("mark");
     if (m === "none") return;
     withContentXform(g, box, () => {
@@ -962,13 +1040,9 @@
       const img = new Image();
       img.onload = () => {
         const isSvg = (file.type||"").includes("svg") || /\.svg$/i.test(file.name);
-        if (isSvg) {
-          if (state.svgImg) keepLayer("svg", state.svgImg);
-          state.svgImg = img; $("mark").value = "svg";
-        } else {
-          if (state.photo) keepLayer("photo", state.photo);
-          state.photo = img; $("mark").value = "photo";
-        }
+        keepLayer(isSvg ? "svg" : "photo", img);
+        if (isSvg) state.svgImg = img; else state.photo = img;
+        $("mark").value = isSvg ? "svg" : "photo";
         $("px").value = 50; $("py").value = 50; $("rot").value = 0;
         draw(); pushHist();
       };
@@ -1014,6 +1088,7 @@
           return;
         }
         if (["sx","sy","sblur","salpha","scolor","layerTarget"].includes(el.id)) saveSlidersToLayer();
+        if (["lyText","lySize","lyAlpha","lyInk","lyShadow","lyShadowColor","lyStroke","lyStrokeColor"].includes(el.id)) writePick();
         requestDraw(false);
       });
       el.addEventListener("change", () => { if (el.type !== "file") pushHist(); });
