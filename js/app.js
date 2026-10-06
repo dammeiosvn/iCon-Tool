@@ -478,6 +478,7 @@
     g.shadowBlur = layer.shadow || 0;
     g.drawImage(plate, 0, 0);
     g.restore();
+    g.restore();
   }
   function selectedLayer() { return state.stack[state.pick] || null; }
   function loadPick() {
