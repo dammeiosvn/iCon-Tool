@@ -451,24 +451,26 @@
     const cx = box.x + box.w * ((layer.px ?? 50) / 100);
     const cy = box.y + box.h * ((layer.py ?? 50) / 100);
     const x = cx - size / 2, y = cy - size / 2;
+    const plate = document.createElement("canvas");
+    plate.width = plate.height = SIZE;
+    const p = plate.getContext("2d");
+    if (layer.stroke > 0) {
+      const steps = 16;
+      for (let i = 0; i < steps; i++) {
+        const a = i / steps * Math.PI * 2;
+        p.drawImage(src, x + Math.cos(a) * layer.stroke, y + Math.sin(a) * layer.stroke, size, size);
+      }
+      p.globalCompositeOperation = "source-in";
+      p.fillStyle = layer.strokeColor || "#ffffff";
+      p.fillRect(0, 0, SIZE, SIZE);
+      p.globalCompositeOperation = "source-over";
+    }
+    p.drawImage(src, x, y, size, size);
     g.save();
     g.globalAlpha = (layer.alpha ?? 100) / 100;
     g.shadowColor = layer.shadowColor || "#000000";
     g.shadowBlur = layer.shadow || 0;
-    if (layer.stroke > 0) {
-      const steps = 16;
-      g.shadowBlur = 0;
-      for (let i = 0; i < steps; i++) {
-        const a = i / steps * Math.PI * 2;
-        g.drawImage(src, x + Math.cos(a) * layer.stroke, y + Math.sin(a) * layer.stroke, size, size);
-      }
-      g.globalCompositeOperation = "source-in";
-      g.fillStyle = layer.strokeColor || "#ffffff";
-      g.fillRect(box.x, box.y, box.w, box.h);
-      g.globalCompositeOperation = "source-over";
-    }
-    g.shadowBlur = layer.shadow || 0;
-    g.drawImage(src, x, y, size, size);
+    g.drawImage(plate, 0, 0);
     g.restore();
   }
   function selectedLayer() { return state.stack[state.pick] || null; }
