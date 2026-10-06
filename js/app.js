@@ -713,14 +713,30 @@
     return out;
   }
 
-  function svgMarkup() {
-    const box = iconBox(), clear = val("bg")==="clear", mode = val("bg");
-    const stops = mode==="grad3"
-      ? `<stop stop-color="${val("c1")}"/><stop offset=".5" stop-color="${val("c3")}"/><stop offset="1" stop-color="${val("c2")}"/>`
-      : `<stop stop-color="${val("c1")}"/><stop offset="1" stop-color="${mode==="solid"?val("c1"):val("c2")}"/>`;
-    const text = val("mark")==="text"
-      ? `<text x="512" y="540" text-anchor="middle" font-size="${num("size")}" font-family="${val("font")}" font-weight="700" fill="${val("ink")}">${(val("letters")||"S").slice(0,4)}</text>` : "";
-    return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024">${clear?"":`<defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1">${stops}</linearGradient></defs>`}<rect x="${box.x}" y="${box.y}" width="${box.w}" height="${box.h}" rx="${box.r}" fill="${clear?"none":"url(#g)"}" stroke="rgba(255,255,255,.78)" stroke-width="${num("stroke")}"/>${text}</svg>`;
+  function gradientStops() {
+    const mode = val("bg");
+    const c1 = val("c1"), c2 = val("c2") || c1, c3 = val("c3") || c2;
+    if (mode === "grad3") return `<stop offset="0" stop-color="${c1}"/><stop offset="0.5" stop-color="${c3}"/><stop offset="1" stop-color="${c2}"/>`;
+    if (mode === "solid") return `<stop offset="0" stop-color="${c1}"/><stop offset="1" stop-color="${c1}"/>`;
+    return `<stop offset="0" stop-color="${c1}"/><stop offset="1" stop-color="${c2}"/>`;
+  }
+  function gradientLine() {
+    const ang = num("ang") * Math.PI / 180;
+    const cx = 512, cy = 512, L = 512;
+    return [cx - Math.cos(ang) * L, cy - Math.sin(ang) * L, cx + Math.cos(ang) * L, cy + Math.sin(ang) * L].map(n => n.toFixed(1)).join(" ");
+  }
+  async function svgMarkup() {
+    draw();
+    const box = iconBox();
+    const clear = val("bg") === "clear";
+    const blob = await scaledBlob(SIZE, false);
+    const bytes = new Uint8Array(await blob.arrayBuffer());
+    let bin = "";
+    for (let i = 0; i < bytes.length; i++) bin += String.fromCharCode(bytes[i]);
+    const image = `<image href="data:image/png;base64,${btoa(bin)}" x="0" y="0" width="1024" height="1024"/>`;
+    const [x1, y1, x2, y2] = gradientLine().split(" ");
+    const fill = clear ? "" : `<defs><linearGradient id="bg" gradientUnits="userSpaceOnUse" x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}">${gradientStops()}</linearGradient></defs><rect x="${box.x}" y="${box.y}" width="${box.w}" height="${box.h}" rx="${box.r}" fill="url(#bg)"/>`;
+    return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024">${fill}${image}</svg>`;
   }
 
   async function shareOrDownload(name, blob) {
@@ -1013,7 +1029,7 @@
       if (hit.size) $("runSize").value = hit.size;
     };
     fillRuns();
-    $("shareSvg").onclick = () => shareOrDownload(`${slug()}.svg`, new Blob([svgMarkup()], { type:"image/svg+xml" }));
+    $("shareSvg").onclick = async () => shareOrDownload(`${slug()}.svg`, new Blob([await svgMarkup()], { type:"image/svg+xml" }));
     $("pickDrop").onclick = () => { state.drop = true; sheet.classList.add("ghost"); };
     $("saveLib").onclick = saveLib;
     $("saveStyle").onclick = saveStyle;
