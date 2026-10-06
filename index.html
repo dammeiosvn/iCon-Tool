@@ -239,14 +239,11 @@
       </div>
 
       <div class="pane" data-pane="media">
-        <label class="field"><span>Thêm lớp</span>
-          <select id="addStack">
-            <option value="">+ Thêm lớp…</option>
-            <option value="photo">Ảnh</option>
-            <option value="svg">SVG</option>
-            <option value="text">Chữ</option>
-          </select>
-        </label>
+        <div class="row">
+          <label class="file grow">Ảnh<input id="filePhoto" type="file" accept="image/*" hidden></label>
+          <label class="file grow">SVG<input id="fileSvg" type="file" accept=".svg,image/svg+xml" hidden></label>
+          <button class="file grow" id="addText" type="button">Chữ</button>
+        </div>
         <button class="file" id="pick" type="button" hidden>Chọn ảnh / SVG</button>
         <button class="file" id="cam" type="button">Chụp ảnh</button>
         <div class="layers" id="stack"></div>

@@ -1073,23 +1073,24 @@
     showTip();
   }
 
-  function loadFile(file) {
+  function loadFile(file, kind) {
     if (!file) return;
+    const isSvg = kind === "svg" || (file.type||"").includes("svg") || /\.svg$/i.test(file.name);
     const reader = new FileReader();
     reader.onload = () => {
       const img = new Image();
       img.onload = () => {
-        const isSvg = (file.type||"").includes("svg") || /\.svg$/i.test(file.name);
-        keepLayer(state.addKind || (isSvg ? "svg" : "photo"), img);
-        state.addKind = "";
+        keepLayer(isSvg ? "svg" : "photo", img);
         if (isSvg) state.svgImg = img; else state.photo = img;
         $("mark").value = isSvg ? "svg" : "photo";
         $("px").value = 50; $("py").value = 50; $("rot").value = 0;
         draw(); pushHist();
       };
+      img.onerror = () => alert("Không đọc được file");
       img.src = reader.result;
     };
     reader.readAsDataURL(file);
+    ["file","fileCam","filePhoto","fileSvg"].forEach((id) => { if ($(id)) $(id).value = ""; });
   }
 
   const TITLES = { bg:"Nền", radius:"Bo góc", glass:"Kính & viền", shadow:"Đổ bóng", mark:"Ký hiệu & chữ", media:"Ảnh & SVG", home:"Màn hình chính", export:"Xuất file" };
@@ -1130,12 +1131,7 @@
         }
         if (["sx","sy","sblur","salpha","scolor","layerTarget"].includes(el.id)) saveSlidersToLayer();
         if (["lyText","lySize","lyAlpha","lyInk","lyShadow","lyShadowColor","lyStroke","lyStrokeColor","zoom","px","py","rot","keepSvg"].includes(el.id) && selectedLayer()) writePick();
-        if (el.id === "addStack") {
-          const kind = el.value; el.value = "";
-          if (kind === "text") { keepLayer("text"); draw(); pushHist(); }
-          if (kind === "photo" || kind === "svg") { state.addKind = kind; $("file").click(); }
-          return;
-        }
+
         requestDraw(false);
       });
       el.addEventListener("change", () => { if (el.type !== "file") pushHist(); });
@@ -1163,7 +1159,10 @@
     $("pick").onclick = () => $("file").click();
     $("cam").onclick = () => $("fileCam").click();
     $("file").onchange = () => loadFile($("file").files[0]);
-    $("fileCam").onchange = () => loadFile($("fileCam").files[0]);
+    $("fileCam").onchange = () => loadFile($("fileCam").files[0], "photo");
+    $("filePhoto").onchange = () => loadFile($("filePhoto").files[0], "photo");
+    $("fileSvg").onchange = () => loadFile($("fileSvg").files[0], "svg");
+    $("addText").onclick = () => { keepLayer("text"); draw(); pushHist(); };
     $("center").onclick = () => { $("px").value=50; $("py").value=50; $("rot").value=0; draw(); pushHist(); };
 
     $("autoInk").onclick = () => { $("ink").value = lum(val("c1")) > .45 ? "#111111" : "#ffffff"; draw(); pushHist(); };
