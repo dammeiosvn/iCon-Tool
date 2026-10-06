@@ -450,7 +450,13 @@
     const size = layer.size || 220;
     const cx = box.x + box.w * ((layer.px ?? 50) / 100);
     const cy = box.y + box.h * ((layer.py ?? 50) / 100);
-    const x = cx - size / 2, y = cy - size / 2;
+    const zoom = (layer.zoom || 100) / 100;
+    const drawSize = size * zoom;
+    const x = cx - drawSize / 2, y = cy - drawSize / 2;
+    g.save();
+    g.translate(cx, cy);
+    g.rotate((layer.rot || 0) * Math.PI / 180);
+    g.translate(-cx, -cy);
     const plate = document.createElement("canvas");
     plate.width = plate.height = SIZE;
     const p = plate.getContext("2d");
@@ -488,6 +494,11 @@
     $("lyShadowColor").value = layer.shadowColor || "#000000";
     $("lyStroke").value = layer.stroke || 0;
     $("lyStrokeColor").value = layer.strokeColor || "#ffffff";
+    $("zoom").value = layer.zoom || 100;
+    $("px").value = layer.px ?? 50;
+    $("py").value = layer.py ?? 50;
+    $("rot").value = layer.rot || 0;
+    $("keepSvg").checked = !!layer.keepSvg;
     $("lySizeVal").textContent = $("lySize").value;
     $("lyAlphaVal").textContent = $("lyAlpha").value + "%";
     $("lyShadowVal").textContent = $("lyShadow").value;
@@ -504,14 +515,27 @@
     layer.shadowColor = $("lyShadowColor").value;
     layer.stroke = +$("lyStroke").value;
     layer.strokeColor = $("lyStrokeColor").value;
+    layer.zoom = num("zoom");
+    layer.px = num("px");
+    layer.py = num("py");
+    layer.rot = num("rot");
+    layer.keepSvg = on("keepSvg");
     loadPick();
     renderStack();
   }
+  function moveStack(from, to) {
+    if (from === to || from < 0 || to < 0 || from >= state.stack.length || to >= state.stack.length) return;
+    const [layer] = state.stack.splice(from, 1);
+    state.stack.splice(to, 0, layer);
+    state.pick = to;
+    renderStack(); loadPick(); draw();
+  }
   function renderStack() {
     const box = $("stack"); if (!box) return;
+    const name = (layer) => layer.kind === "text" ? (layer.letters || "Chữ") : layer.kind === "svg" ? "SVG" : "Ảnh";
     box.innerHTML = state.stack.map((layer, i) =>
-      `<div class="layer${i === state.pick ? " on-edit" : ""}" data-i="${i}"><span>${layer.kind === "text" ? (layer.letters || "Chữ") : layer.kind === "svg" ? "SVG" : "Ảnh"}</span><button type="button" data-del="${i}">✕</button></div>`
-    ).join("") || `<p class="note">Chưa có lớp ghép.</p>`;
+      `<div class="layer${i === state.pick ? " on-edit" : ""}" data-i="${i}"><span>≡ ${name(layer)}</span><button type="button" data-del="${i}">✕</button></div>`
+    ).join("") || `<p class="note">Nền ở dưới. Thêm lớp để đè lên.</p>`;
     box.querySelectorAll(".layer").forEach((row) => {
       row.onclick = (e) => {
         if (e.target.dataset.del) {
@@ -522,6 +546,19 @@
         }
         state.pick = +row.dataset.i;
         renderStack(); loadPick();
+      };
+      row.ontouchstart = (e) => {
+        if (e.target.dataset.del) return;
+        const from = +row.dataset.i;
+        const startY = e.touches[0].clientY;
+        const move = (ev) => {
+          const dy = ev.touches[0].clientY - startY;
+          const shift = Math.round(dy / 42);
+          if (shift) { moveStack(from, Math.max(0, Math.min(state.stack.length - 1, from + shift))); }
+        };
+        const end = () => { row.removeEventListener("touchmove", move); row.removeEventListener("touchend", end); };
+        row.addEventListener("touchmove", move, { passive: true });
+        row.addEventListener("touchend", end);
       };
     });
   }
@@ -1042,7 +1079,8 @@
       const img = new Image();
       img.onload = () => {
         const isSvg = (file.type||"").includes("svg") || /\.svg$/i.test(file.name);
-        keepLayer(isSvg ? "svg" : "photo", img);
+        keepLayer(state.addKind || (isSvg ? "svg" : "photo"), img);
+        state.addKind = "";
         if (isSvg) state.svgImg = img; else state.photo = img;
         $("mark").value = isSvg ? "svg" : "photo";
         $("px").value = 50; $("py").value = 50; $("rot").value = 0;
@@ -1090,7 +1128,13 @@
           return;
         }
         if (["sx","sy","sblur","salpha","scolor","layerTarget"].includes(el.id)) saveSlidersToLayer();
-        if (["lyText","lySize","lyAlpha","lyInk","lyShadow","lyShadowColor","lyStroke","lyStrokeColor"].includes(el.id)) writePick();
+        if (["lyText","lySize","lyAlpha","lyInk","lyShadow","lyShadowColor","lyStroke","lyStrokeColor","zoom","px","py","rot","keepSvg"].includes(el.id) && selectedLayer()) writePick();
+        if (el.id === "addStack") {
+          const kind = el.value; el.value = "";
+          if (kind === "text") { keepLayer("text"); draw(); pushHist(); }
+          if (kind === "photo" || kind === "svg") { state.addKind = kind; $("file").click(); }
+          return;
+        }
         requestDraw(false);
       });
       el.addEventListener("change", () => { if (el.type !== "file") pushHist(); });
@@ -1120,7 +1164,7 @@
     $("file").onchange = () => loadFile($("file").files[0]);
     $("fileCam").onchange = () => loadFile($("fileCam").files[0]);
     $("center").onclick = () => { $("px").value=50; $("py").value=50; $("rot").value=0; draw(); pushHist(); };
-    $("addText").onclick = () => { keepLayer("text"); draw(); pushHist(); };
+
     $("autoInk").onclick = () => { $("ink").value = lum(val("c1")) > .45 ? "#111111" : "#ffffff"; draw(); pushHist(); };
     $("symQ").addEventListener("input", renderSymbols);
     const fontEl = $("font");

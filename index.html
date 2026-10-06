@@ -239,9 +239,16 @@
       </div>
 
       <div class="pane" data-pane="media">
-        <button class="file" id="pick" type="button">Thêm ảnh / SVG</button>
+        <label class="field"><span>Thêm lớp</span>
+          <select id="addStack">
+            <option value="">+ Thêm lớp…</option>
+            <option value="photo">Ảnh</option>
+            <option value="svg">SVG</option>
+            <option value="text">Chữ</option>
+          </select>
+        </label>
+        <button class="file" id="pick" type="button" hidden>Chọn ảnh / SVG</button>
         <button class="file" id="cam" type="button">Chụp ảnh</button>
-        <button class="file" id="addText" type="button">Thêm chữ</button>
         <div class="layers" id="stack"></div>
         <div id="layerEdit" hidden>
           <label class="field" id="lyTextWrap"><span>Chữ lớp</span>
