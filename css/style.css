@@ -454,12 +454,75 @@ label.file { width: 100%; border: 1px solid var(--edge); border-radius: 12px; pa
 .content-layer { grid-template-columns: minmax(0, 1fr) auto auto auto; }
 .content-layer .layer-name { text-align: left; overflow-wrap: anywhere; color: var(--fg); min-width: 0; }
 .content-layer button { min-height: 32px; }
-.color-tone { display: grid; grid-template-columns: minmax(0,1fr) auto; align-items: center; gap: 2px; font-size: 10px; color: var(--muted); }
+/* Circular color pickers: disc above, title below, matching heights in each row. */
+.swatches { display: flex; align-items: flex-start; justify-content: space-evenly; gap: 12px; }
+.swatch, .swatch.lone { min-width: 0; width: 100%; display: grid; grid-template-columns: minmax(0,1fr); justify-items: center; align-content: start; gap: 8px; text-align: center; }
+.swatches > .swatch { flex: 1; }
+.swatch > .color-disc { grid-row: 1; }
+.swatch > span:not(.color-disc):not(.color-tone) { grid-row: 2; }
+.color-disc { position: relative; display: block; width: 48px; height: 48px; border-radius: 50%; overflow: hidden; border: 1px solid var(--edge); background-color: #fff; background-image: conic-gradient(#d2d5d9 25%, #fff 0 50%, #d2d5d9 0 75%, #fff 0); background-size: 12px 12px; }
+.color-fill { position: absolute; inset: 0; background: var(--swatch-color); pointer-events: none; }
+.pane .color-disc input[type="color"], .swatch.lone .color-disc input { position: absolute; inset: 0; width: 100%; height: 100%; margin: 0; padding: 0; border: 0; border-radius: 50%; opacity: 0; cursor: pointer; }
+.color-disc:focus-within { outline: 3px solid var(--accent); outline-offset: 3px; }
+.color-tone { display: grid; grid-template-columns: minmax(0,1fr) auto; width: 100%; align-items: center; gap: 2px; font-size: 10px; color: var(--muted); }
 .color-tone input { grid-column: 1 / -1; min-width: 0; }
+.color-tone input[type="range"]::-webkit-slider-runnable-track { background: linear-gradient(90deg, transparent, var(--tone-color)); }
+.color-tone input[type="range"]::-moz-range-track { background: linear-gradient(90deg, transparent, var(--tone-color)); }
 .color-tone output { color: var(--thumb); font-variant-numeric: tabular-nums; }
 button:disabled, input:disabled, select:disabled { opacity: .45; }
-.swatch.lone { grid-template-columns: 1fr; }
-.swatch.lone input { width: 100%; }
-.swatches { grid-template-columns: repeat(3, minmax(0,1fr)); }
+.row > .grow { min-width: 0; }
+.action-row > button { font-size: 12px; min-height: 48px; padding: 10px 4px; }
+.sample-row { align-items: end; }
+.sample-row button { min-height: 46px; }
+.bg-modes { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 8px; }
+.bg-modes button { border: 1px solid var(--edge); border-radius: 12px; background: var(--fill); color: var(--fg); padding: 10px 6px; min-height: 44px; font-size: 13px; font-weight: 650; }
+.bg-modes button.on { background: var(--accent); color: #fff; border-color: var(--accent); }
 #selectionStatus { color: var(--accent); }
 #stack:empty { display: none; }
+
+
+/* Tablet layout uses the viewport, including Split View; no device-name sniffing. */
+@media (min-width: 768px) {
+  :root { --rail: clamp(72px, 8vw, 104px); --panel-w: clamp(340px, 40vw, 520px); }
+  body { padding: calc(16px + var(--safe-t)) calc(16px + var(--safe-r)) calc(16px + var(--safe-b)) 16px; }
+  .top { padding-bottom: 20px; }
+  .top h1 { font-size: 24px; }
+  .tools button { width: 48px; height: 48px; font-size: 20px; }
+  .workspace { width: calc(100% - var(--panel-w) - 24px); gap: 16px; }
+  .stage { max-width: calc(100dvh - 160px); }
+  .mock { padding: 16px; }
+  .mock-name { font-size: 16px; max-width: 160px; }
+  .rail { gap: 12px; }
+  .rail button { min-height: 56px; height: 56px; max-height: none; border-radius: 16px; font-size: clamp(14px, 1.4vw, 18px); }
+  .sheet { left: auto; right: calc(16px + var(--safe-r)); top: calc(88px + var(--safe-t)); bottom: calc(16px + var(--safe-b)); width: var(--panel-w); background: var(--card); }
+  .sheet-head { padding: 16px 20px 12px; font-size: 18px; }
+  .sheet-head button { min-height: 44px; padding: 10px 16px; font-size: 16px; }
+  .sheet-body { padding: 8px 20px 24px; }
+  .pane.on { gap: 18px; }
+  .field > span, .slide > span, .swatch > span, .check span { font-size: 15px; }
+  .section-title { font-size: 18px; }
+  .pane input, .pane select, button.file, button.go, label.file { font-size: 18px; }
+  .action-row > button { font-size: 15px; min-height: 52px; }
+  .color-disc { width: 64px; height: 64px; }
+  .color-tone { font-size: 12px; }
+  .bg-modes button, .chips button { min-height: 44px; font-size: 15px; }
+  input[type="range"] { height: 40px; }
+  input[type="range"]::-webkit-slider-thumb { width: 32px; height: 32px; margin-top: -12px; }
+  .content-layer button { min-height: 44px; font-size: 16px; }
+  .note { font-size: 14px; }
+  .sym { height: 48px; font-size: 24px; }
+}
+@media (max-width: 767px) and (orientation: landscape) {
+  :root { --rail: 60px; }
+  .workspace { width: 46%; }
+  .rail button { height: 44px; min-height: 44px; max-height: none; font-size: 12px; }
+  .sheet { top: calc(64px + var(--safe-t)); left: 48%; right: calc(12px + var(--safe-r)); }
+}
+
+@media (min-width: 520px) and (max-width: 767px) and (orientation: portrait) {
+  :root { --rail: 64px; }
+  .top h1 { font-size: 22px; }
+  .rail button { min-height: 48px; height: 48px; max-height: none; font-size: 13px; }
+  .color-disc { width: 56px; height: 56px; }
+  .action-row > button { font-size: 14px; }
+}

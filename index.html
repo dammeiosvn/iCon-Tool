@@ -14,7 +14,7 @@
   <link rel="manifest" href="manifest.webmanifest">
   <link rel="apple-touch-icon" href="icon-home-screen.png" sizes="180x180">
   <link rel="icon" type="image/png" href="icon-home-screen.png">
-  <link rel="stylesheet" href="css/style.css?v=37">
+  <link rel="stylesheet" href="css/style.css?v=38">
 </head>
 <body>
   <script>document.addEventListener('gesturestart', function (e) { e.preventDefault(); });</script>
@@ -56,26 +56,7 @@
     <div class="sheet-body">
 
       <div class="pane" data-pane="bg">
-        <label class="field"><span>Kiểu nền</span>
-          <select id="bg">
-            <option value="grad2">Gradient 2 màu</option>
-            <option value="grad3">Gradient 3 màu</option>
-            <option value="solid">Màu đơn</option>
-            <option value="clear">Trong suốt</option>
-          </select>
-        </label>
-        <div class="swatches">
-          <label class="swatch"><input id="c1" type="color" value="#1c8f86"><span>Màu 1</span></label>
-          <label class="swatch"><input id="c2" type="color" value="#3dcc6e"><span>Màu 2</span></label>
-          <label class="swatch"><input id="c3" type="color" value="#e8fff4"><span>Màu 3</span></label>
-        </div>
-        <label class="slide"><span>Góc gradient</span><em id="angVal">45°</em>
-          <input id="ang" type="range" min="0" max="360" value="45">
-        </label>
-        <label class="slide"><span>Noise</span><em id="noiseVal">6</em>
-          <input id="noise" type="range" min="0" max="40" value="6">
-        </label>
-        <div class="row">
+        <div class="row sample-row">
           <button class="file grow" id="pickDrop" type="button">Lấy màu</button>
           <label class="field grow"><span>Gắn vào</span>
             <select id="dropTo">
@@ -88,6 +69,32 @@
           </label>
         </div>
         <p class="note" id="dropStatus" role="status">Chọn ô màu đích, bấm Lấy màu rồi chạm vào ảnh xem trước.</p>
+
+        <div class="field"><span>Kiểu nền</span>
+          <div class="bg-modes" id="bgModes" role="group" aria-label="Kiểu nền">
+            <button type="button" data-bg-mode="solid">Màu đơn</button>
+            <button type="button" data-bg-mode="grad2">2 màu</button>
+            <button type="button" data-bg-mode="grad3">3 màu</button>
+            <button type="button" data-bg-mode="clear">Trong suốt</button>
+          </div>
+          <select id="bg" hidden aria-label="Kiểu nền">
+            <option value="grad2">Gradient 2 màu</option>
+            <option value="grad3">Gradient 3 màu</option>
+            <option value="solid">Màu đơn</option>
+            <option value="clear">Trong suốt</option>
+          </select>
+        </div>
+        <div class="swatches">
+          <label class="swatch"><input id="c1" type="color" value="#1c8f86"><span>Màu 1</span></label>
+          <label class="swatch"><input id="c2" type="color" value="#3dcc6e"><span>Màu 2</span></label>
+          <label class="swatch"><input id="c3" type="color" value="#e8fff4"><span>Màu 3</span></label>
+        </div>
+        <label class="slide"><span>Góc gradient</span><em id="angVal">45°</em>
+          <input id="ang" type="range" min="0" max="360" value="45">
+        </label>
+        <label class="slide"><span>Noise</span><em id="noiseVal">6</em>
+          <input id="noise" type="range" min="0" max="40" value="6">
+        </label>
         <h2 class="section-title">Bo góc</h2>
         <label class="slide"><span>Bo góc</span><em id="radiusVal">0</em>
           <input id="radius" type="range" min="0" max="512" value="0">
@@ -101,16 +108,16 @@
         <label class="slide"><span>Viền sáng</span><em id="strokeVal">0</em>
           <input id="stroke" type="range" min="0" max="32" value="0">
         </label>
+        <label class="slide"><span>Lề nội dung</span><em id="padVal">48</em>
+          <input id="pad" type="range" min="0" max="280" value="48">
+        </label>
         <label class="field"><span>Màu viền sáng</span><select id="frameMode"><option value="solid">Màu đơn</option><option value="grad2">Gradient 2 màu</option><option value="grad3">Gradient 3 màu</option></select></label>
+        <label class="slide"><span>Góc màu viền</span><em id="frameAngVal">45°</em><input id="frameAng" type="range" min="0" max="360" value="45"></label>
         <div class="swatches">
           <label class="swatch"><input id="frame1" type="color" value="#ffffff"><span>Viền 1</span></label>
           <label class="swatch"><input id="frame2" type="color" value="#5ac8fa"><span>Viền 2</span></label>
           <label class="swatch"><input id="frame3" type="color" value="#ff9f0a"><span>Viền 3</span></label>
         </div>
-        <label class="slide"><span>Góc màu viền</span><em id="frameAngVal">45°</em><input id="frameAng" type="range" min="0" max="360" value="45"></label>
-        <label class="slide"><span>Lề nội dung</span><em id="padVal">48</em>
-          <input id="pad" type="range" min="0" max="280" value="48">
-        </label>
       </div>
 
       <div class="pane" data-pane="shadow">
@@ -165,7 +172,11 @@
           <button class="file grow" id="addText" type="button">Chữ</button>
         </div>
         <button class="file" id="pick" type="button" hidden>Chọn ảnh / SVG</button>
-        <button class="file" id="cam" type="button">Chụp ảnh</button>
+        <div class="row action-row">
+          <button class="file grow" id="autoInk" type="button">Màu theo nền</button>
+          <button class="file grow" id="cam" type="button">Chụp ảnh</button>
+          <button class="file grow" id="center" type="button">Căn giữa</button>
+        </div>
         <div class="layers" id="stack"></div>
         <p class="note" id="selectionStatus" role="status"></p>
         <label class="field"><span>Tìm symbol</span>
@@ -233,7 +244,6 @@
           <input id="gap2" type="range" min="-40" max="80" value="8">
         </label>
         <label class="check"><input id="snap" type="checkbox" checked><span>Snap tâm khi kéo</span></label>
-        <button class="file" id="autoInk" type="button">Màu theo nền</button>
         <select id="mark" hidden>
           <option value="none">Không</option>
           <option value="text" selected>Chữ</option>
@@ -254,7 +264,6 @@
             <input id="lyShadow" type="range" min="0" max="48" value="0">
           </label>
         </div>
-        <button class="file" id="center" type="button">Căn giữa</button>
         <label class="slide"><span>Phóng</span><em id="zoomVal">100%</em>
           <input id="zoom" type="range" min="20" max="400" value="100">
         </label>
@@ -379,6 +388,6 @@
   <input id="fileCam" type="file" accept="image/*" capture="environment" hidden>
   <input id="fileKit" type="file" accept="image/*" hidden>
 
-  <script src="js/app.js?v=37" defer></script>
+  <script src="js/app.js?v=38" defer></script>
 </body>
 </html>

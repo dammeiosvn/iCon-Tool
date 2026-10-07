@@ -76,7 +76,7 @@ test('editor: transparent PNG/SVG, isolated layers, gestures, colors, history an
  assert.ok(layer.zoom>before.zoom);assert.notEqual(layer.rot,before.rot);
  set('flipH',true);set('flipV',true);assert.ok(layer.flipH&&layer.flipV);w.document.getElementById('center').click();assert.equal(layer.px,50);assert.equal(layer.py,50);assert.equal(layer.rot,0);
  set('edge',12);set('edgeMode','3');set('edge1','#00ff00');set('lyShadow',24);assert.equal(layer.edge,12);assert.equal(layer.shadow,24);
- set('c1','#204060');set('c1Tone',50);assert.equal(w.document.getElementById('c1').value,'#90a0b0');set('c1Tone',0);assert.equal(w.document.getElementById('c1').value,'#204060','brightness reversible');
+ set('c1','#204060');set('c1Tone',50);assert.equal(w.document.getElementById('c1').value,'#204060','opacity preserves RGB');set('c1Tone',100);
  set('bg','solid');set('noise',0);set('glass',0);a.state.pick=0;a.loadPick();set('dropTo','ink');w.document.getElementById('pickDrop').click();pointer('pointerdown',9,3,3);assert.equal(a.state.stack[0].ink,'#204060');assert.match(w.document.getElementById('dropStatus').textContent,/Đã gắn/);
  const second=a.keepLayer('text');second.letters='<img src=x onerror=alert(1)>';a.loadPick();a.draw();a.pushHist();
  assert.equal(w.document.querySelector('#stack img'),null,'layer text cannot inject HTML');
@@ -121,4 +121,22 @@ test('SVG import, per-layer recolor/outline, save reopen and legacy migration',a
  const legacy=await boot(new IDBFactory(),{'tao-icon-v2':{mark:'plus',ink:'#aabbcc',size:'300',px:'60',flipH:true},'tao-icon-lib':[{id:1,thumb:imageData('#ffff00'),data:{mark:'text',letters:'OLD',size:'180'}}]});t.after(legacy.close);
  assert.equal(legacy.a.state.stack[0].kind,'symbol');assert.equal(legacy.a.state.stack[0].symbol,'plus');assert.equal(legacy.a.state.stack[0].px,60);assert.equal(legacy.w.localStorage.getItem('tao-icon-v2'),null);
  legacy.w.document.querySelector('#lib button').click();assert.equal(legacy.a.state.stack[0].letters,'OLD');assert.equal(legacy.a.state.stack.length,1);
+});
+
+
+test('color opacity preserves hue, updates actual pixels and survives history/reload',async t=>{
+ const db=new IDBFactory();let app=await boot(db);t.after(()=>app.close());let {a,w,set}=app;
+ set('bg','solid');set('noise',0);set('glass',0);set('c1','#cc4400');
+ for(const amount of [25,50,100,0]){
+   set('c1Tone',amount);a.draw();assert.equal(w.document.getElementById('c1').value,'#cc4400');
+   const rgba=await pixel(await a.scaledBlob(1024,false),10,10);assert.ok(Math.abs(rgba[3]-Math.round(amount*2.55))<=1);
+   if(amount){assert.ok(Math.abs(rgba[0]-204)<=3);assert.ok(Math.abs(rgba[1]-68)<=3);assert.equal(rgba[2],0);}
+ }
+ set('c1Tone',100);set('bg','clear');set('letters','M');set('ink','#00cc88');set('inkTone',40);set('edge',8);set('edge1','#ff8800');set('edge1Tone',30);
+ let src=a.paintLayerSource(a.state.stack[0]);const pixels=src.getContext('2d').getImageData(0,0,src.width,src.height).data;
+ const alpha=[];for(let i=3;i<pixels.length;i+=4)alpha.push(pixels[i]);assert.ok(Math.abs(Math.max(...alpha)-102)<=1,'text opacity reaches renderer');
+ assert.equal(w.document.getElementById('ink').value,'#00cc88');
+ w.document.getElementById('undo').click();w.document.getElementById('redo').click();assert.equal(a.state.stack[0].colorBases.ink.tone,40);
+ await a.persist();app.close();app=await boot(db);({a,w,set}=app);assert.equal(w.document.getElementById('inkTone').value,'40');assert.equal(a.state.stack[0].colorBases.edge1.tone,30);
+ assert.equal(w.document.getElementById('scolorTone'),null,'shadow opacity control is not duplicated');
 });

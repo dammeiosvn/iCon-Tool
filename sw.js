@@ -1,6 +1,6 @@
-const CACHE = "icontool-v37";
+const CACHE = "icontool-v38";
 const PREFIXES = ["tao-icon-", "icontool-"];
-const ASSETS = ["./", "./index.html", "./css/style.css?v=37", "./js/app.js?v=37", "./manifest.webmanifest", "./icon-home-screen.png", "./icon-512.png", "./icon-1024.png"];
+const ASSETS = ["./", "./index.html", "./css/style.css?v=38", "./js/app.js?v=38", "./manifest.webmanifest", "./icon-home-screen.png", "./icon-512.png", "./icon-1024.png"];
 self.addEventListener("install", event => {
   event.waitUntil(caches.open(CACHE).then(cache => cache.addAll(ASSETS)).then(() => self.skipWaiting()));
 });

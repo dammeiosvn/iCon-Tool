@@ -152,9 +152,9 @@
       const cx = box.x+box.w/2, cy = box.y+box.h/2;
       const L = Math.hypot(box.w, box.h)/2;
       const grad = g.createLinearGradient(cx-Math.cos(ang)*L, cy-Math.sin(ang)*L, cx+Math.cos(ang)*L, cy+Math.sin(ang)*L);
-      grad.addColorStop(0, val("c1"));
-      if (mode === "grad3") grad.addColorStop(.5, val("c3"));
-      grad.addColorStop(1, mode === "solid" ? val("c1") : val("c2"));
+      grad.addColorStop(0, colorValue("c1"));
+      if (mode === "grad3") grad.addColorStop(.5, colorValue("c2"));
+      grad.addColorStop(1, colorValue(mode === "solid" ? "c1" : mode === "grad3" ? "c3" : "c2"));
       g.fillStyle = grad;
       g.fill();
     }
@@ -323,8 +323,9 @@
     const a = angle * Math.PI / 180, d = Math.hypot(w, h) / 2;
     const grad = g.createLinearGradient(w/2-Math.cos(a)*d, h/2-Math.sin(a)*d, w/2+Math.cos(a)*d, h/2+Math.sin(a)*d);
     grad.addColorStop(0, colors[0]);
-    if (mode === "grad3" || mode === "3") grad.addColorStop(.5, colors[2]);
-    grad.addColorStop(1, colors[1]);
+    const three = mode === "grad3" || mode === "3";
+    if (three) grad.addColorStop(.5, colors[1]);
+    grad.addColorStop(1, three ? colors[2] : colors[1]);
     return grad;
   }
 
@@ -339,7 +340,7 @@
 
   const sourceCache = new WeakMap();
   function paintLayerSource(layer) {
-    const key = JSON.stringify([layer.asset, layer.kind, layer.size, layer.letters, layer.letters2, layer.size2, layer.gap2, layer.font, layer.ink, layer.ink2, layer.inkMode, layer.inkAng, layer.keepSvg, layer.symbol]);
+    const key = JSON.stringify([layer.asset, layer.kind, layer.size, layer.letters, layer.letters2, layer.size2, layer.gap2, layer.font, layer.ink, layer.ink2, layer.inkMode, layer.inkAng, layer.keepSvg, layer.symbol, layer.colorBases]);
     const cached = sourceCache.get(layer);
     if (cached && cached.key === key) return cached.canvas;
     const size = Math.max(12, layer.size || 220);
@@ -359,7 +360,7 @@
       cnv.height = Math.max(1, Math.round(ratio >= 1 ? size / ratio : size));
     } else cnv.width = cnv.height = Math.ceil(size * 1.4);
     const o = cnv.getContext("2d");
-    const paint = colorPaint(o, cnv.width, cnv.height, layer.inkMode, [layer.ink, layer.ink2], layer.inkAng);
+    const paint = colorPaint(o, cnv.width, cnv.height, layer.inkMode, [layerColorValue(layer,"ink"), layerColorValue(layer,"ink2")], layer.inkAng);
     if (layer.kind === "text") {
       o.fillStyle = paint;
       o.textAlign = "center"; o.textBaseline = "middle";
@@ -382,7 +383,7 @@
   const plateCache = new WeakMap();
   function layerPlate(layer) {
     const src = paintLayerSource(layer);
-    const key = JSON.stringify([layer.zoom, layer.edge, layer.edgeMode, layer.edge1, layer.edge2, layer.edge3, layer.edgeAng]);
+    const key = JSON.stringify([layer.zoom, layer.edge, layer.edgeMode, layer.edge1, layer.edge2, layer.edge3, layer.edgeAng, layer.colorBases]);
     const cached = plateCache.get(layer);
     if (cached && cached.src === src && cached.key === key) return cached.plate;
     const z = (layer.zoom ?? 100) / 100;
@@ -401,7 +402,7 @@
         }
       }
       p.globalCompositeOperation = "source-in";
-      p.fillStyle = colorPaint(p, logicalW, logicalH, layer.edgeMode, [layer.edge1, layer.edge2, layer.edge3], layer.edgeAng);
+      p.fillStyle = colorPaint(p, logicalW, logicalH, layer.edgeMode, ["edge1","edge2","edge3"].map(id=>layerColorValue(layer,id)), layer.edgeAng);
       p.fillRect(0, 0, logicalW, logicalH);
       p.globalCompositeOperation = "source-over";
     }
@@ -418,7 +419,7 @@
     g.translate(cx, cy); g.rotate(layer.rot * Math.PI / 180);
     g.scale(layer.flipH ? -1 : 1, layer.flipV ? -1 : 1);
     g.globalAlpha = layer.alpha / 100;
-    if (layer.shadow > 0) { g.shadowColor = layer.shadowColor; g.shadowBlur = layer.shadow; }
+    if (layer.shadow > 0) { g.shadowColor = layerColorValue(layer,"lyShadowColor","shadowColor"); g.shadowBlur = layer.shadow; }
     const paint = (out) => out.drawImage(plate.canvas, -plate.w / 2, -plate.h / 2, plate.w, plate.h);
     paint(g);
     g.restore();
@@ -429,8 +430,7 @@
     const layer = selectedLayer();
     $("layerEdit").hidden = !layer;
     $("center").disabled = !layer;
-    $("autoInk").disabled = !layer;
-    $("autoInk").hidden = !layer || layer.kind === "photo";
+    $("autoInk").disabled = !layer || layer.kind === "photo";
     $("selectionStatus").textContent = layer ? `Đang sửa lớp ${state.pick + 1}: ${layer.kind === "text" ? "Chữ" : layer.kind === "symbol" ? "Ký hiệu" : layer.kind === "svg" ? "SVG" : "Ảnh"}` : "Chưa có lớp. Bấm Ảnh, SVG hoặc Chữ để thêm.";
     Object.entries(PICK_FIELDS).forEach(([id, key]) => {
       const el = $(id); el.disabled = !layer;
@@ -441,7 +441,7 @@
     ["ink","ink2","inkMode","inkAng"].forEach(id => $(id).closest("label").hidden = !layer || layer.kind === "photo");
     $("keepSvg").closest("label").hidden = !layer || layer.kind !== "svg";
     $("font").style.fontFamily = val("font");
-    if (layer) Object.keys(PICK_FIELDS).filter(id => $(id).type === "color").forEach(id => { colorBases[id] = layer.colorBases?.[id] || {base:val(id),tone:0}; });
+    if (layer) Object.keys(PICK_FIELDS).filter(id => $(id).type === "color").forEach(id => { colorBases[id] = normalizeColorSetting(layer.colorBases?.[id],val(id)); });
     syncColorControls(); syncUI();
   }
   function writePick(id) {
@@ -549,7 +549,7 @@
       if (L.on && L.target === "frame" && INSET.has(L.type)) applyInsetLayer(ctx, fb, L);
     });
     if (num("stroke")>0) {
-      ctx.strokeStyle = colorPaint(ctx, SIZE, SIZE, val("frameMode"), [val("frame1"), val("frame2"), val("frame3")], num("frameAng"));
+      ctx.strokeStyle = colorPaint(ctx, SIZE, SIZE, val("frameMode"), ["frame1","frame2","frame3"].map(colorValue), num("frameAng"));
       ctx.lineWidth = num("stroke");
       clipIcon(ctx, { x:box.x+num("stroke")/2, y:box.y+num("stroke")/2, w:box.w-num("stroke"), h:box.h-num("stroke"), r:Math.max(0,box.r-num("stroke")/2) });
       ctx.stroke();
@@ -566,6 +566,10 @@
   }
 
   function syncUI() {
+    document.querySelectorAll("[data-bg-mode]").forEach(button=>{
+      const active = button.dataset.bgMode === val("bg");
+      button.classList.toggle("on",active); button.setAttribute("aria-pressed",String(active));
+    });
     const layer = selectedLayer();
     const map = { lyShadow:"lyShadowVal", frameAng:"frameAngVal", noise:"noiseVal", ang:"angVal", radius:"radiusVal", glass:"glassVal", stroke:"strokeVal", pad:"padVal", sx:"sxVal", sy:"syVal", sblur:"sblurVal", salpha:"salphaVal", size:"sizeVal", size2:"size2Val", gap2:"gap2Val", alpha:"alphaVal", zoom:"zoomVal", px:"pxVal", py:"pyVal", rot:"rotVal", inkAng:"inkAngVal", edge:"edgeVal", edgeAng:"edgeAngVal" };
     const units = { frameAng:"°", ang:"°", inkAng:"°", rot:"°", edgeAng:"°", alpha:"%", zoom:"%" };
@@ -601,6 +605,7 @@
     }
     w.hidden = !issues.length;
     w.textContent = issues[0] || "";
+    syncColorControls();
   }
 
   function readForm() {
@@ -623,13 +628,18 @@
       const el = $(id); if (!el || o[id] == null) return;
       if (el.type === "checkbox") el.checked = !!o[id]; else el.value = o[id];
     });
-    if (o.layers) state.layers = JSON.parse(JSON.stringify(o.layers));
+    if (o.layers) state.layers = o.layers.map(migrateShadowColor);
     if (o.active != null) state.active = o.active;
     if (o.seq) state.seq = o.seq;
     if (!o.stack) o = { ...o, stack:legacyStack(o), pick:0 };
-    if (o.stack) state.stack = o.stack.map(layer => ({ ...layerDefaults(), ...layer, img:assets.get(layer.asset)?.img || null }));
+    if (o.stack) state.stack = o.stack.map(layer => ({ ...layerDefaults(), ...migrateLayerColors(layer), img:assets.get(layer.asset)?.img || null }));
     if (o.pick != null) state.pick = Math.max(-1, Math.min(o.pick, state.stack.length - 1));
-    if (o.colors) Object.assign(colorBases, o.colors);
+    if (o.colors) Object.entries(o.colors).forEach(([id,entry])=>{
+      if (!$(id) || $(id).type !== "color") return;
+      const setting = normalizeColorSetting(entry,val(id));
+      if (entry.mode !== "opacity") $(id).value = setting.base;
+      colorBases[id] = setting;
+    });
     hist.lock = false;
     renderStack(); loadPick();
     renderLayers();
@@ -672,7 +682,7 @@
     $("sblur").value = L.blur; $("salpha").value = L.alpha;
     $("scolor").value = L.color;
     $("layerTarget").value = L.target;
-    colorBases.scolor = L.colorBase || {base:L.color,tone:0};
+    colorBases.scolor = normalizeColorSetting(L.colorBase,L.color);
     syncColorControls();
     hist.lock = false;
     syncUI();
@@ -999,6 +1009,9 @@
   function placeSheet() {
     const mock = $("mock");
     if (!mock) return;
+    if (window.matchMedia && window.matchMedia("(min-width: 768px), (max-width: 767px) and (orientation: landscape)").matches) {
+      sheet.style.removeProperty("top"); sheet.style.removeProperty("bottom"); return;
+    }
     const edge = mock.getBoundingClientRect().bottom;
     sheet.style.top = Math.ceil(edge) + "px";
     const vv = window.visualViewport;
@@ -1060,6 +1073,12 @@
       };
     });
     $("sheetClose").onclick = closeSheet;
+    $("bgModes").onclick = event => {
+      const button = event.target.closest("[data-bg-mode]"); if (!button) return;
+      $("bg").value = button.dataset.bgMode;
+      $("bg").dispatchEvent(new Event("input",{bubbles:true}));
+      $("bg").dispatchEvent(new Event("change",{bubbles:true}));
+    };
     $("pick").onclick = () => $("file").click();
     $("cam").onclick = () => $("fileCam").click();
     $("file").onchange = () => loadFile($("file").files[0]);
@@ -1216,10 +1235,13 @@
       STYLE_FIELDS.forEach(id=>{
         if (style[id] == null) return;
         if ($(id).type === "checkbox") $(id).checked=style[id]; else $(id).value=style[id];
-        if ($(id).type === "color") colorBases[id]=style.colors?.[id] || {base:val(id),tone:0};
+        if ($(id).type === "color") {
+          colorBases[id]=normalizeColorSetting(style.colors?.[id],val(id));
+          if (style.colors?.[id] && style.colors[id].mode !== "opacity") $(id).value=colorBases[id].base;
+        }
         if (PICK_FIELDS[id]) writePick(id);
       });
-      if (style.layers) { state.layers=clone(style.layers); state.active=0; }
+      if (style.layers) { state.layers=style.layers.map(migrateShadowColor); state.active=0; }
       syncColorControls(); renderLayers(); loadLayerToSliders(); draw(); pushHist();
     } catch (error) { storageError(error); }
   }
@@ -1403,36 +1425,63 @@
   }
 
   const colorBases = {};
+  function normalizeColorSetting(setting, fallback) {
+    return {base:setting?.base || fallback,tone:setting?.mode === "opacity" ? Math.max(0,Math.min(100,+setting.tone)) : 100,mode:"opacity"};
+  }
+  function migrateShadowColor(layer) {
+    const migrated = clone(layer);
+    if (migrated.colorBase && migrated.colorBase.mode !== "opacity") migrated.color = migrated.colorBase.base || migrated.color;
+    migrated.colorBase = normalizeColorSetting(migrated.colorBase,migrated.color);
+    return migrated;
+  }
+  function migrateLayerColors(layer) {
+    const migrated = {...layer,colorBases:{...layer.colorBases}};
+    Object.entries(migrated.colorBases).forEach(([id,entry])=>{
+      const key = PICK_FIELDS[id]; if (!key) return;
+      const setting = normalizeColorSetting(entry,migrated[key]);
+      if (entry.mode !== "opacity") migrated[key] = setting.base;
+      migrated.colorBases[id] = setting;
+    });
+    return migrated;
+  }
+  function colorValue(id) { return hexAlpha(val(id),(colorBases[id]?.tone ?? 100)/100); }
+  function layerColorValue(layer,id,key=id) { return hexAlpha(layer[key],(layer.colorBases?.[id]?.tone ?? 100)/100); }
   function setupColorControls() {
     document.querySelectorAll('input[type="color"]').forEach(input => {
-      colorBases[input.id]={base:input.value,tone:0};
+      const label = input.closest("label"), title = label.querySelector("span").textContent.trim();
+      input.setAttribute("aria-label",title);
+      colorBases[input.id]=normalizeColorSetting(null,input.value);
+      const disc=document.createElement("span"); disc.className="color-disc";
+      const fill=document.createElement("span"); fill.className="color-fill";
+      input.before(disc); disc.append(fill,input);
+      // Shadow already has one opacity control: salpha. Do not add a duplicate.
+      if (input.id === "scolor") return;
       const wrap=document.createElement("span"); wrap.className="color-tone";
-      const name=document.createElement("span"); name.textContent="Đậm / nhạt";
+      const name=document.createElement("span"); name.textContent="Độ đậm";
       const output=document.createElement("output"); output.id=input.id+"ToneVal";
-      const range=document.createElement("input"); range.type="range"; range.min=-100; range.max=100; range.value=0; range.id=input.id+"Tone"; range.dataset.tone=input.id;
-      range.setAttribute("aria-label", "Đậm nhạt "+input.closest("label").textContent.trim());
-      wrap.append(name,output,range); input.closest("label").append(wrap);
+      const range=document.createElement("input"); range.type="range"; range.min=0; range.max=100; range.value=100; range.id=input.id+"Tone"; range.dataset.tone=input.id;
+      range.setAttribute("aria-label","Đậm nhạt "+title);
+      wrap.append(name,output,range); label.append(wrap);
       range.addEventListener("input",()=>{
-        const entry=colorBases[input.id]; entry.tone=+range.value;
-        const rgb=entry.base.slice(1).match(/../g).map(value=>parseInt(value,16));
-        const t=Math.abs(entry.tone)/100, target=entry.tone<0?0:255;
-        input.value="#"+rgb.map(value=>Math.round(value+(target-value)*t).toString(16).padStart(2,"0")).join("");
+        colorBases[input.id].tone=+range.value;
         if (PICK_FIELDS[input.id]) writePick(input.id);
-        if (input.id==="scolor") { saveSlidersToLayer(); if (activeLayer()) activeLayer().colorBase=clone(entry); }
         syncColorControls(); requestDraw(false);
       });
       range.addEventListener("change",()=>{ draw(); pushHist(); });
     });
   }
   function resetColorBase(id) {
-    colorBases[id]={base:val(id),tone:0}; syncColorControls();
+    const tone=colorBases[id]?.mode === "opacity" ? colorBases[id].tone : 100;
+    colorBases[id]={base:val(id),tone,mode:"opacity"}; syncColorControls();
   }
   function syncColorControls() {
     document.querySelectorAll('input[type="color"]').forEach(input=>{
-      const entry=colorBases[input.id] || {base:input.value,tone:0};
+      const entry=normalizeColorSetting(colorBases[input.id],input.value);
       const range=$(input.id+"Tone"), output=$(input.id+"ToneVal");
-      if (range) { range.value=entry.tone; range.disabled=input.disabled; }
+      if (range) { range.value=entry.tone; range.disabled=input.disabled; range.style.setProperty("--tone-color",input.value); }
       if (output) output.textContent=entry.tone+"%";
+      const opacity=input.id === "scolor" ? num("salpha")/100 : entry.tone/100;
+      input.closest(".color-disc").style.setProperty("--swatch-color",hexAlpha(input.value,opacity));
     });
   }
 
