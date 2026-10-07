@@ -1,15 +1,26 @@
-const CACHE = "tao-icon-v36";
-const ASSETS = ["./", "./index.html", "./css/style.css", "./js/app.js", "./manifest.webmanifest", "./icon-home-screen.png"];
-self.addEventListener("install", (e) => {
-  e.waitUntil(caches.open(CACHE).then((c) => c.addAll(ASSETS)).then(() => self.skipWaiting()));
+const CACHE = "icontool-v37";
+const PREFIXES = ["tao-icon-", "icontool-"];
+const ASSETS = ["./", "./index.html", "./css/style.css?v=37", "./js/app.js?v=37", "./manifest.webmanifest", "./icon-home-screen.png", "./icon-512.png", "./icon-1024.png"];
+self.addEventListener("install", event => {
+  event.waitUntil(caches.open(CACHE).then(cache => cache.addAll(ASSETS)).then(() => self.skipWaiting()));
 });
-self.addEventListener("activate", (e) => {
-  e.waitUntil(caches.keys().then((keys) => Promise.all(keys.filter((k) => k !== CACHE).map((k) => caches.delete(k)))).then(() => self.clients.claim()));
+self.addEventListener("activate", event => {
+  event.waitUntil(caches.keys().then(keys => Promise.all(keys.filter(key => key !== CACHE && PREFIXES.some(prefix => key.startsWith(prefix))).map(key => caches.delete(key)))).then(() => self.clients.claim()));
 });
-self.addEventListener("fetch", (e) => {
-  e.respondWith(fetch(e.request).then((r) => {
-    const copy = r.clone();
-    caches.open(CACHE).then((c) => c.put(e.request, copy));
-    return r;
-  }).catch(() => caches.match(e.request)));
+self.addEventListener("fetch", event => {
+  const request = event.request, url = new URL(request.url);
+  if (request.method !== "GET" || url.origin !== self.location.origin || !url.pathname.startsWith(new URL(self.registration.scope).pathname)) return;
+  event.respondWith((async () => {
+    const cache = await caches.open(CACHE);
+    try {
+      const response = await fetch(request);
+      if (response.ok && response.type === "basic") event.waitUntil(cache.put(request, response.clone()));
+      return response;
+    } catch {
+      const cached = await cache.match(request);
+      if (cached) return cached;
+      if (request.mode === "navigate") return (await cache.match("./index.html")) || Response.error();
+      return Response.error();
+    }
+  })());
 });

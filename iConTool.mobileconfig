@@ -44,7 +44,7 @@
             <key>TargetApplicationBundleIdentifier</key>
             <string>com.apple.webapp</string>
             <key>Scope</key>
-            <string>https://dammeiosvn.github.io/iCon-Tool//</string>
+            <string>https://dammeiosvn.github.io/iCon-Tool/</string>
         </dict>
     </array>
 </dict>

@@ -1,0 +1,16 @@
+{
+  "name": "icon-tool",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "test": "node --test tests/*.test.cjs"
+  },
+  "devDependencies": {
+    "@napi-rs/canvas": "0.1.80",
+    "fake-indexeddb": "6.2.4",
+    "jsdom": "26.1.0"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}
